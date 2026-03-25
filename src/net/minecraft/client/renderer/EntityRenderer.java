@@ -359,6 +359,7 @@ public class EntityRenderer implements IResourceManagerReloadListener {
                 d1 = this.mc.objectMouseOver.hitVec.distanceTo(vec3);
             }
 
+
             Vec3 vec31 = entity.getLook(partialTicks);
             Vec3 vec32 = vec3.addVector(vec31.xCoord * d0, vec31.yCoord * d0, vec31.zCoord * d0);
             this.pointedEntity = null;

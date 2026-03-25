@@ -178,6 +178,7 @@ public abstract class GuiSlot {
             GlStateManager.shadeModel(7425);
             GlStateManager.disableTexture2D();
 
+
             int j1 = this.func_148135_f();
 
             if (j1 > 0) {

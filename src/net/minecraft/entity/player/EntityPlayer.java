@@ -208,12 +208,6 @@ public abstract class EntityPlayer extends EntityLivingBase {
 
         super.onUpdate();
 
-        try {
-        } catch (Exception e) {
-            System.err.println("Critical: Player state validation failed: " + e.getMessage());
-            Minecraft.getMinecraft().thePlayer = null;
-            Minecraft.getMinecraft().gameSettings = null;
-        }
 
         if (!this.worldObj.isRemote && this.openContainer != null && !this.openContainer.canInteractWith(this)) {
             this.closeScreen();

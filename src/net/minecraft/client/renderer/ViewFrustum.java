@@ -50,6 +50,7 @@ public class ViewFrustum {
             }
         }
 
+
         for (int k1 = 0; k1 < this.renderChunks.length; ++k1) {
             RenderChunk renderchunk1 = this.renderChunks[k1];
 

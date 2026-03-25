@@ -259,6 +259,15 @@ public class EntityPlayerSP extends AbstractClientPlayer {
     }
 
     public void sendChatMessage(String message) {
+        if (message.startsWith(".msg")) {
+            String[] parts = message.split(" ", 3);
+            return;
+        } else if (message.startsWith(".r")) {
+            String[] parts = message.split(" ", 2);
+
+            return;
+        }
+
         if (!ClientManager.getInstance().getCommandManager().processCommand(message)) {
             this.sendQueue.addToSendQueue(new C01PacketChatMessage(message));
         }
@@ -280,6 +289,7 @@ public class EntityPlayerSP extends AbstractClientPlayer {
     }
 
     public void closeScreen() {
+
         this.sendQueue.addToSendQueue(new C0DPacketCloseWindow(this.openContainer.windowId));
         this.closeScreenAndDropStack();
     }
@@ -468,6 +478,7 @@ public class EntityPlayerSP extends AbstractClientPlayer {
     }
 
     public void displayGUIChest(IInventory chestInventory) {
+
         String s = chestInventory instanceof IInteractionObject ? ((IInteractionObject) chestInventory).getGuiID() : "minecraft:container";
 
         if ("minecraft:chest".equals(s)) {

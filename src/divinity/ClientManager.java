@@ -1,10 +1,10 @@
 package divinity;
 
 import divinity.command.CommandManager;
+import divinity.gui.alt.AltManager;
 import divinity.event.base.Event;
 import divinity.event.base.dispatcher.EventDispatcher;
 import divinity.friend.FriendManager;
-import divinity.gui.alt.AltManager;
 import divinity.gui.click.Clickable;
 import divinity.handler.BlinkHandler;
 import divinity.handler.PlayerTrackerHandler;
@@ -34,6 +34,7 @@ public class ClientManager implements Core {
     private final BlinkHandler blinkHandler = new BlinkHandler();
     private final RotationHandler rotationHandler = new RotationHandler();
     public ModuleManager moduleManager;
+    private AltManager altManager;
     public int delta;
     public long lastFrame;
     public ShaderMenu shaderMenu;
@@ -41,7 +42,6 @@ public class ClientManager implements Core {
     public boolean welcomed = false;
     private NotificationManager notificationManager;
     private GuiEditElement guiEditElement;
-    private AltManager altManager;
 
     //TEMP
     @Setter
@@ -68,11 +68,15 @@ public class ClientManager implements Core {
             System.out.println("JPEG texture support enabled for cutscenes");
         }
 
-        altManager = new AltManager();
         notificationManager = new NotificationManager();
         guiEditElement = new GuiEditElement();
+        altManager = new AltManager();
 
 
+    }
+
+    public AltManager getAltManager() {
+        return altManager;
     }
 
     @Override
