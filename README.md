@@ -1,2 +1,0 @@
-# Divinity
-skid method

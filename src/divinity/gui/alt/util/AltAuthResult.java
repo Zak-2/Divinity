@@ -1,0 +1,6 @@
+package divinity.gui.alt.util;
+
+public enum AltAuthResult {
+    SUCCESS, NO_COOKIES_GIVEN, USER_XBL_AUTH_FAILED, XSTS_XBL_AUTH_FAILED,
+    PROFILE_FETCH_FAILED, LIVE_LOGIN_FAILED, SISU_XBL_LOGIN_FAILED
+}
