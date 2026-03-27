@@ -13,7 +13,6 @@ import divinity.utils.RenderUtils;
 import divinity.utils.ShaderUtils;
 import divinity.utils.font.Fonts;
 import divinity.utils.shaders.visual.BlurUtil;
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
 import org.lwjgl.input.Keyboard;
@@ -35,7 +34,7 @@ public class MainWindow extends Window {
     private List<CategoryButtonComponent> categoryButtons;
     private List<ModuleButtonComponent> moduleButtons;
     private List<ModulePropertyWindow> propertyWindows;
-    private ESPPreviewWidget espPreviewWidget;
+    private ESPPreviewWidget espPreviewWidget; // Declare here, initialize once
     private int totalContentHeight = 0;
 
     public MainWindow(float x, float y, float width, float height) {
@@ -51,7 +50,7 @@ public class MainWindow extends Window {
 
     @Override
     public void drawScreen(int mouseX, int mouseY) {
-        float partialTicks = Minecraft.getMinecraft().timer.renderPartialTicks;
+        float partialTicks = mc.timer.renderPartialTicks;
         BlurUtil.blurArea(getX(), getY(), getWidth(), getHeight());
         ShaderUtils.drawRoundRect(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 5, new Color(9, 9, 14, 200).getRGB());
 
@@ -101,7 +100,8 @@ public class MainWindow extends Window {
             }
             espPreviewWidget.drawScreen(mouseX, mouseY, partialTicks);
         } else {
-            espPreviewWidget = null; // Clean up when not in ESP module
+            // If ESP module is not selected, ensure the preview widget is not active
+            espPreviewWidget = null;
         }
 
         allowClick = dropdownComponent == null && pickerContainer == null;
@@ -198,6 +198,7 @@ public class MainWindow extends Window {
         if (dropdownComponent != null) dropdownComponent.mouseClicked(mouseX, mouseY, mouseButton);
         if (pickerContainer != null) pickerContainer.mouseClicked(mouseX, mouseY, mouseButton);
         
+        // Handle widget clicks only if it exists and is for the ESP module
         if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.mouseClicked(mouseX, mouseY, mouseButton);
         }
@@ -207,6 +208,7 @@ public class MainWindow extends Window {
 
     @Override
     public void handleMouseInput() {
+        // Handle widget mouse input only if it exists and is for the ESP module
         if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.handleMouseInput();
         }
@@ -249,6 +251,7 @@ public class MainWindow extends Window {
             pickerContainer.mouseReleased(mouseX, mouseY, state);
         }
         
+        // Handle widget mouse release only if it exists and is for the ESP module
         if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.mouseReleased(mouseX, mouseY, state);
         }
@@ -273,6 +276,7 @@ public class MainWindow extends Window {
                     .ifPresent(pw -> pw.keyTyped(typedChar, keyCode));
         }
         
+        // Handle widget key typed only if it exists and is for the ESP module
         if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.keyTyped(typedChar, keyCode);
         }
