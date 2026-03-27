@@ -51,6 +51,7 @@ public class MainWindow extends Window {
 
     @Override
     public void drawScreen(int mouseX, int mouseY) {
+        float partialTicks = mc.timer.renderPartialTicks;
         BlurUtil.blurArea(getX(), getY(), getWidth(), getHeight());
         ShaderUtils.drawRoundRect(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 5, new Color(9, 9, 14, 200).getRGB());
 

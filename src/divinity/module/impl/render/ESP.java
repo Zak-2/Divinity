@@ -48,6 +48,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class ESP extends Module {
     private static final MultiSelectProperty entitiesProperty = new MultiSelectProperty("Targets", new String[]{"LocalPlayer", "Invisible Entities", "NPC", "TabList only"}, new String[]{"LocalPlayer", "TabList Only"});
     private static final MultiSelectProperty otherEspProperty = new MultiSelectProperty("More ESP options", new String[]{"Chest"}, new String[]{"Chest"});
+    
     public final BooleanProperty showEspPreview = new BooleanProperty("Show ESP Preview", true);
     public final BooleanProperty enableEspDragging = new BooleanProperty("Enable ESP Dragging", false);
     public final NumberProperty<Float> espPreviewScale = new NumberProperty<>("ESP Preview Scale", 1.0f, 0.5f, 2.0f, 0.1f);
@@ -65,14 +66,16 @@ public class ESP extends Module {
     public final NumberProperty<Float> heldItemYOffset = new NumberProperty<>("HeldItem Y Offset", 0f, -200f, 200f, 1f);
     public final NumberProperty<Float> armorItemsXOffset = new NumberProperty<>("ArmorItems X Offset", 0f, -200f, 200f, 1f);
     public final NumberProperty<Float> armorItemsYOffset = new NumberProperty<>("ArmorItems Y Offset", 0f, -200f, 200f, 1f);
+
     public final BooleanProperty renderBox = new BooleanProperty("Box", false);
     public final BooleanProperty boxOutline = new BooleanProperty("Box Outline", false, renderBox::getValue);
     public final BooleanProperty armorBar = new BooleanProperty("Armor Bar", true);
     public final BooleanProperty skeleton = new BooleanProperty("Skeleton", true);
     private final ModeProperty boxType = new ModeProperty("Box Type", "Corners", renderBox::getValue, "Corners", "Full");
     private final ColorProperty boxColor = new ColorProperty("Box Color", ClientManager.getInstance().getMainColor(), renderBox::getValue);
-    private final NumberProperty<?> secondsToPersist = new NumberProperty<>("Seconds to persist", 0, 0, 12, 1);
+    private final NumberProperty<Integer> secondsToPersist = new NumberProperty<>("Seconds to persist", 0, 0, 12, 1);
     private final ColorProperty chestColor = new ColorProperty("Chest Color", ClientManager.getInstance().getMainColor(), () -> otherEspProperty.isSelected("Chest"));
+    
     private final Map<EntityPlayer, float[][]> entities = new HashMap<>();
     private final Map<EntityPlayer, PlayerData> lastKnownData = new HashMap<>();
     private final IntBuffer viewport = GLAllocation.createDirectIntBuffer(16);
@@ -376,171 +379,53 @@ public class ESP extends Module {
                 items.add(heldItem);
             }
 
-            float itemSize = 18 * 0.5f;
-            float totalWidth = items.size() * itemSize;
+            for (int i = 0; i < 4; i++) {
+                ItemStack armor = entity.inventory.armorInventory[i];
+                if (armor != null) {
+                    items.add(armor);
+                }
+            }
 
-            int startX = (int) Math.round(centerX - (totalWidth / 2.0));
-            int itemOffsetY = (int) Math.round(rectTop - 10);
-
-            for (int i = 0; i < items.size(); i++) {
-                RenderUtils.renderItemStack(
-                        items.get(i),
-                        startX + (i * (int) itemSize),
-                        itemOffsetY,
-                        0.5f
-                );
+            if (!items.isEmpty()) {
+                float itemX = (float) (endPosX + 5);
+                float itemY = (float) posY;
+                for (ItemStack item : items) {
+                    RenderUtils.renderItemStack(item, (int) itemX, (int) itemY, 1);
+                    itemY += 16;
+                }
             }
         }
     }
 
-    private Vector3d project2D(ScaledResolution scaledResolution, double x, double y, double z) {
-        GL11.glGetFloat(2982, modelView);
-        GL11.glGetFloat(2983, projection);
-        GL11.glGetInteger(2978, viewport);
+    private Vector3d project2D(ScaledResolution sr, double x, double y, double z) {
+        GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelView);
+        GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projection);
+        GL11.glGetInteger(GL11.GL_VIEWPORT, viewport);
+
         if (GLU.gluProject((float) x, (float) y, (float) z, modelView, projection, viewport, vector)) {
-            return new Vector3d(vector.get(0) / scaledResolution.getScaleFactor(),
-                    (Display.getHeight() - vector.get(1)) / scaledResolution.getScaleFactor(),
-                    vector.get(2));
+            return new Vector3d(vector.get(0) / sr.getScaleFactor(), (Display.getHeight() - vector.get(1)) / sr.getScaleFactor(), vector.get(2));
         }
         return null;
     }
 
-    @EventListener
-    public void onEvent(RenderWorldEvent event) {
-        if (skeleton.getValue()) {
-            glLineWidth(0.1f);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glEnable(GL_LINE_SMOOTH);
-            RenderUtils.glColor(new Color(255, 255, 255, 150).getRGB());
-            glDisable(GL_DEPTH_TEST);
-            glDisable(GL_TEXTURE_2D);
-            glDepthMask(false);
-
-            for (EntityPlayer playerEntities : mc.theWorld.playerEntities) {
-                if (isValid(playerEntities)) drawSkeleton(event.getPartialTicks(), playerEntities);
-            }
-
-            glDepthMask(true);
-            glDisable(GL_BLEND);
-            glEnable(GL_TEXTURE_2D);
-            glDisable(GL_LINE_SMOOTH);
-            glEnable(GL_DEPTH_TEST);
-        }
-
-        if (otherEspProperty.isSelected("Chest")) {
-            for (Object o : mc.theWorld.loadedTileEntityList) {
-                if (o instanceof TileEntityChest) {
-                    TileEntityChest storage = (TileEntityChest) o;
-                    espUtils.drawESPOnStorage(storage, storage.getPos().getX(), storage.getPos().getY(),
-                            storage.getPos().getZ(), chestColor.getValue().getRed(),
-                            chestColor.getValue().getGreen(), chestColor.getValue().getBlue());
-                }
-            }
-        }
+    private boolean isValid(EntityLivingBase entity) {
+        if (entity == mc.thePlayer) return entitiesProperty.isSelected("LocalPlayer");
+        if (entity.isInvisible()) return entitiesProperty.isSelected("Invisible Entities");
+        if (entity instanceof EntityPlayer && PlayerUtils.isNPC((EntityPlayer) entity)) return entitiesProperty.isSelected("NPC");
+        if (entity instanceof EntityPlayer && !ServerUtils.isTabListed((EntityPlayer) entity)) return entitiesProperty.isSelected("TabList only");
+        return true;
     }
 
-    public boolean renderSkeletonEsp() {
-        return isState() && skeleton.getValue();
-    }
-
-    public void addEntity(EntityPlayer e, ModelPlayer model) {
-        entities.put(e, new float[][]{
-                {model.bipedHead.rotateAngleX, model.bipedHead.rotateAngleY, model.bipedHead.rotateAngleZ},
-                {model.bipedRightArm.rotateAngleX, model.bipedRightArm.rotateAngleY, model.bipedRightArm.rotateAngleZ},
-                {model.bipedLeftArm.rotateAngleX, model.bipedLeftArm.rotateAngleY, model.bipedLeftArm.rotateAngleZ},
-                {model.bipedRightLeg.rotateAngleX, model.bipedRightLeg.rotateAngleY, model.bipedRightLeg.rotateAngleZ},
-                {model.bipedLeftLeg.rotateAngleX, model.bipedLeftLeg.rotateAngleY, model.bipedLeftLeg.rotateAngleZ}
-        });
-    }
-
-    private void drawSkeleton(float pt, EntityPlayer player) {
-        float[][] entPos;
-        if ((entPos = entities.get(player)) != null) {
-            glPushMatrix();
-            float x = (float) (RenderUtils.interpolate(player.prevPosX, player.posX, pt) -
-                    RenderManager.renderPosX);
-            float y = (float) (RenderUtils.interpolate(player.prevPosY, player.posY, pt) -
-                    RenderManager.renderPosY);
-            float z = (float) (RenderUtils.interpolate(player.prevPosZ, player.posZ, pt) -
-                    RenderManager.renderPosZ);
-            glTranslated(x, y, z);
-            boolean sneaking = player.isSneaking();
-
-            final float rotationYawHead;
-            final float renderYawOffset;
-            final float prevRenderYawOffset;
-
-            useClientSideRots:
-            {
-                if (player instanceof EntityPlayerSP) {
-                    if (ClientManager.getInstance().getRotationHandler().getBestRequest().isPresent()) {
-                        final float serverYaw = ClientManager.getInstance().getRotationHandler().getBestRequest().get().getYaw();
-                        rotationYawHead = serverYaw;
-                        renderYawOffset = serverYaw;
-                        prevRenderYawOffset = ClientManager.getInstance().getRotationHandler().lastYaw;
-                        break useClientSideRots;
-                    }
-                }
-
-                rotationYawHead = player.rotationYawHead;
-                renderYawOffset = player.renderYawOffset;
-                prevRenderYawOffset = player.prevRenderYawOffset;
-            }
-
-
-            final float xOff = (float) RenderUtils.interpolate(
-                    MathHelper.wrapAngleTo180_float(prevRenderYawOffset),
-                    MathHelper.wrapAngleTo180_float(renderYawOffset), pt
-            );
-            float yOff = sneaking ? 0.6F : 0.75F;
-            glRotatef(-MathHelper.wrapAngleTo180_float(xOff), 0.0F, 1.0F, 0.0F);
-            glTranslatef(0.0F, 0.0F, sneaking ? -0.235F : 0.0F);
-            SkeletonUtils.drawSkeletonLines(entPos, xOff, yOff, rotationYawHead, sneaking);
-        }
-    }
-
-
-    public boolean isValid(Entity entity) {
-        if (entity instanceof EntityPlayer) {
-            final EntityPlayer player = (EntityPlayer) entity;
-
-            if (!player.isEntityAlive()) {
-                return lastKnownData.containsKey(player);
-            }
-
-            if (player.isInvisible() && !entitiesProperty.isSelected("Invisible Entities")) {
-                return false;
-            }
-
-            if (player instanceof EntityPlayerSP && (mc.thePlayer.isInFirstPerson() || !entitiesProperty.isSelected("LocalPlayer"))) {
-                return false;
-            }
-
-            if ((entity.getName().contains("NPC")) && !entitiesProperty.isSelected("NPC")) return false;
-
-            if (!ServerUtils.isInTabList((EntityPlayer) entity) && entitiesProperty.isSelected("TabList Only"))
-                return false;
-
-
-            return FrustumUtils.isBoundingBoxInFrustum(entity.getEntityBoundingBox()) && mc.theWorld.playerEntities.contains(player);
-        }
-
-        return false;
-    }
-
-
-    public static class PlayerData {
+    private static class PlayerData {
         public float[][] rotations;
         public AxisAlignedBB boundingBox;
         public float partialTicks;
-        public long deathTime;
+        public long deathTime = -1;
 
         public PlayerData(float[][] rotations, AxisAlignedBB boundingBox, float partialTicks) {
             this.rotations = rotations;
             this.boundingBox = boundingBox;
             this.partialTicks = partialTicks;
-            this.deathTime = -1;
         }
     }
 }
