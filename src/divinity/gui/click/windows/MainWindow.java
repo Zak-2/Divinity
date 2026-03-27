@@ -47,10 +47,6 @@ public class MainWindow extends Window {
         for (Category category : Category.values()) {
             categoryScrollPositions.put(category, 0);
         }
-        
-        // Initialize the ESP Preview Widget. 
-        // We set its initial position relative to the main window.
-        espPreviewWidget = new ESPPreviewWidget((ESP) ClientManager.getInstance().getModuleManager().get(ESP.class), (int) (getX() + getWidth() + 10), (int) getY(), 200, 250);
     }
 
     @Override
@@ -93,14 +89,19 @@ public class MainWindow extends Window {
         if (pickerContainer != null) pickerContainer.drawScreen(mouseX, mouseY);
 
         // Render ESP Preview Widget ONLY if ESP module is selected
-        // It is drawn as a widget, not as a separate window.
         if (selectedModule != null && selectedModule.module instanceof ESP) {
-            // Update widget position to follow the main window if it's being dragged
+            if (espPreviewWidget == null) {
+                espPreviewWidget = new ESPPreviewWidget((ESP) selectedModule.module, (int) (getX() + getWidth() + 10), (int) getY(), 200, 250);
+            }
+            
+            // Sync position with main window if it's being dragged
             if (this.isDragging()) {
                 espPreviewWidget.setX((int) (getX() + getWidth() + 10));
                 espPreviewWidget.setY((int) getY());
             }
             espPreviewWidget.drawScreen(mouseX, mouseY, partialTicks);
+        } else {
+            espPreviewWidget = null; // Clean up when not in ESP module
         }
 
         allowClick = dropdownComponent == null && pickerContainer == null;
@@ -197,8 +198,7 @@ public class MainWindow extends Window {
         if (dropdownComponent != null) dropdownComponent.mouseClicked(mouseX, mouseY, mouseButton);
         if (pickerContainer != null) pickerContainer.mouseClicked(mouseX, mouseY, mouseButton);
         
-        // Handle widget clicks
-        if (selectedModule != null && selectedModule.module instanceof ESP) {
+        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.mouseClicked(mouseX, mouseY, mouseButton);
         }
         
@@ -207,7 +207,7 @@ public class MainWindow extends Window {
 
     @Override
     public void handleMouseInput() {
-        if (selectedModule != null && selectedModule.module instanceof ESP) {
+        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.handleMouseInput();
         }
         super.handleMouseInput();
@@ -249,8 +249,7 @@ public class MainWindow extends Window {
             pickerContainer.mouseReleased(mouseX, mouseY, state);
         }
         
-        // Handle widget mouse release
-        if (selectedModule != null && selectedModule.module instanceof ESP) {
+        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.mouseReleased(mouseX, mouseY, state);
         }
         
@@ -274,8 +273,7 @@ public class MainWindow extends Window {
                     .ifPresent(pw -> pw.keyTyped(typedChar, keyCode));
         }
         
-        // Handle widget key typed
-        if (selectedModule != null && selectedModule.module instanceof ESP) {
+        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
             espPreviewWidget.keyTyped(typedChar, keyCode);
         }
         
