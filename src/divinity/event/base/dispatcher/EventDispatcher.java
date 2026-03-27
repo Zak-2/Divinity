@@ -6,6 +6,7 @@ import divinity.event.base.EventHandler;
 import divinity.event.base.EventListener;
 import divinity.module.Module;
 import divinity.utils.player.rotation.RequireRotationPriority;
+import divinity.utils.player.rotation.RotationHandler;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -27,11 +28,12 @@ public final class EventDispatcher<Event> implements IEventDispatcher<Event> {
 
                 // Capture whether the handler requires rotation priority
                 boolean requiresPriority = method.isAnnotationPresent(RequireRotationPriority.class);
+                int requiredRotationPriority = requiresPriority ? method.getAnnotation(RequireRotationPriority.class).value() : 0;
 
                 // Capture module if the subscriber is a module
                 Module module = (subscriber instanceof Module) ? (Module) subscriber : null;
 
-                addCallSite(eventType, new CallSite<>(subscriber, method, priority, requiresPriority, module));
+                addCallSite(eventType, new CallSite<>(subscriber, method, priority, requiresPriority, requiredRotationPriority, module));
             }
         }
         populateListenerCache();
@@ -50,8 +52,18 @@ public final class EventDispatcher<Event> implements IEventDispatcher<Event> {
             for (CallSite<Event> callSite : callSites) {
                 handlers.add(event -> {
                     // Skip if requires priority but module doesn't have it
-                    if (callSite.requiresPriority && (callSite.module == null || !ClientManager.getInstance().getRotationHandler().isActiveModule(callSite.module))) {
-                        return;
+                    if (callSite.requiresPriority) {
+                        if (callSite.module == null || !ClientManager.getInstance().getRotationHandler().isActiveModule(callSite.module)) {
+                            return;
+                        }
+
+                        // Also check if the current rotation request meets the required priority level
+                        // Note: lower value means higher priority in our new system
+                        RotationHandler handler = ClientManager.getInstance().getRotationHandler();
+                        Optional<RotationHandler.RotationRequest> currentRequest = handler.getBestRequest();
+                        if (currentRequest.isPresent() && currentRequest.get().getPriority() > callSite.requiredRotationPriority) {
+                            return;
+                        }
                     }
                     try {
                         callSite.method.invoke(callSite.owner, event);
@@ -83,13 +95,15 @@ public final class EventDispatcher<Event> implements IEventDispatcher<Event> {
         private final Method method;
         private final byte priority;
         private final boolean requiresPriority;
+        private final int requiredRotationPriority;
         private final Module module;
 
-        public CallSite(Object owner, Method method, byte priority, boolean requiresPriority, Module module) {
+        public CallSite(Object owner, Method method, byte priority, boolean requiresPriority, int requiredRotationPriority, Module module) {
             this.owner = owner;
             this.method = method;
             this.priority = priority;
             this.requiresPriority = requiresPriority;
+            this.requiredRotationPriority = requiredRotationPriority;
             this.module = module;
         }
     }

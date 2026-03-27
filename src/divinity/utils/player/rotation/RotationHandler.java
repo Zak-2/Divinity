@@ -26,7 +26,11 @@ public class RotationHandler {
 
         activeModule = null;
 
-        Optional<Map.Entry<Module, RotationRequest>> winner = requests.entrySet().stream().min(Map.Entry.comparingByValue(Comparator.comparingInt((RotationRequest t) -> t.getPriority().ordinal())));
+        // Find the request with the highest priority (lowest integer value)
+        Optional<Map.Entry<Module, RotationRequest>> winner = requests.entrySet().stream()
+                .filter(e -> e.getValue().ticksRemaining > 0)
+                .min(Comparator.comparingInt((Map.Entry<Module, RotationRequest> e) -> e.getValue().getPriority())
+                        .thenComparingInt(e -> -e.getValue().getTicksRemaining())); // Tie-breaker: longer duration wins
 
         if (winner.isPresent()) {
             RotationRequest bestReq = winner.get().getValue();
@@ -75,37 +79,57 @@ public class RotationHandler {
     }
 
     public Optional<RotationRequest> getBestRequest() {
-        return requests.values().stream().filter(r -> r.ticksRemaining > 0).min(Comparator.comparingInt(r -> r.getPriority().ordinal()));
+        return requests.values().stream()
+                .filter(r -> r.ticksRemaining > 0)
+                .min(Comparator.comparingInt(RotationRequest::getPriority));
     }
 
     public boolean isActiveModule(Module module) {
         return activeModule != null && activeModule.equals(module);
     }
 
-    public enum RotationPriority {
-        ZERO, ONE, TWO, THREE, FOUR, FIVE
+    /**
+     * Common priority levels for rotations.
+     * Lower values indicate higher priority.
+     */
+    public static final class RotationPriority {
+        public static final int HIGHEST = 0;
+        public static final int VERY_HIGH = 10;
+        public static final int HIGH = 20;
+        public static final int MEDIUM = 50;
+        public static final int LOW = 80;
+        public static final int VERY_LOW = 100;
+        public static final int LOWEST = Integer.MAX_VALUE;
+
+        // Backward compatibility constants (mapping old enum ordinals)
+        public static final int ZERO = 0;
+        public static final int ONE = 1;
+        public static final int TWO = 2;
+        public static final int THREE = 3;
+        public static final int FOUR = 4;
+        public static final int FIVE = 5;
     }
 
     @Getter
     public static class RotationRequest {
         private final float yaw, pitch;
-        private final RotationPriority priority;
+        private final int priority;
         private int ticksRemaining;
         private final boolean silentAim;
 
-        public RotationRequest(float yaw, float pitch, RotationPriority priority) {
+        public RotationRequest(float yaw, float pitch, int priority) {
             this(yaw, pitch, priority, 1, true);
         }
 
-        public RotationRequest(float yaw, float pitch, RotationPriority priority, boolean silentAim) {
+        public RotationRequest(float yaw, float pitch, int priority, boolean silentAim) {
             this(yaw, pitch, priority, 1, silentAim);
         }
 
-        public RotationRequest(float yaw, float pitch, RotationPriority priority, int ticks) {
+        public RotationRequest(float yaw, float pitch, int priority, int ticks) {
             this(yaw, pitch, priority, ticks, true);
         }
 
-        public RotationRequest(float yaw, float pitch, RotationPriority priority, int ticks, boolean silentAim) {
+        public RotationRequest(float yaw, float pitch, int priority, int ticks, boolean silentAim) {
             this.yaw = yaw;
             this.pitch = pitch;
             this.priority = priority;
