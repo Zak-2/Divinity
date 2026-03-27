@@ -7,6 +7,8 @@ import divinity.gui.click.components.module.ColorPickerContainer;
 import divinity.gui.click.components.module.DropdownComponent;
 import divinity.module.Category;
 import divinity.module.Module;
+import divinity.module.impl.render.ESP;
+import divinity.module.impl.render.element.impl.ESPPreviewWidget;
 import divinity.utils.RenderUtils;
 import divinity.utils.ShaderUtils;
 import divinity.utils.font.Fonts;
@@ -32,6 +34,7 @@ public class MainWindow extends Window {
     private List<CategoryButtonComponent> categoryButtons;
     private List<ModuleButtonComponent> moduleButtons;
     private List<ModulePropertyWindow> propertyWindows;
+    private ESPPreviewWidget espPreviewWidget;
     private int totalContentHeight = 0;
 
     public MainWindow(float x, float y, float width, float height) {
@@ -43,6 +46,7 @@ public class MainWindow extends Window {
         for (Category category : Category.values()) {
             categoryScrollPositions.put(category, 0);
         }
+        espPreviewWidget = new ESPPreviewWidget((ESP) ClientManager.getInstance().getModuleManager().get(ESP.class), (int) (getX() + getWidth() + 10), (int) getY(), 200, 250);
     }
 
     @Override
@@ -82,6 +86,13 @@ public class MainWindow extends Window {
 
         if (dropdownComponent != null) dropdownComponent.drawScreen(mouseX, mouseY);
         if (pickerContainer != null) pickerContainer.drawScreen(mouseX, mouseY);
+
+        // Render ESP Preview Widget if ESP module is selected
+        if (selectedModule != null && selectedModule.module instanceof ESP) {
+            espPreviewWidget.setX((int) (getX() + getWidth() + 10));
+            espPreviewWidget.setY((int) getY());
+            espPreviewWidget.drawScreen(mouseX, mouseY, partialTicks);
+        }
 
         allowClick = dropdownComponent == null && pickerContainer == null;
         super.drawScreen(mouseX, mouseY);
@@ -176,11 +187,17 @@ public class MainWindow extends Window {
 
         if (dropdownComponent != null) dropdownComponent.mouseClicked(mouseX, mouseY, mouseButton);
         if (pickerContainer != null) pickerContainer.mouseClicked(mouseX, mouseY, mouseButton);
+        if (selectedModule != null && selectedModule.module instanceof ESP) {
+            espPreviewWidget.mouseClicked(mouseX, mouseY, mouseButton);
+        }
         super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
     public void handleMouseInput() {
+        if (selectedModule != null && selectedModule.module instanceof ESP) {
+            espPreviewWidget.handleMouseInput();
+        }
         super.handleMouseInput();
 
         int mouseWheel = Mouse.getEventDWheel();
@@ -219,6 +236,9 @@ public class MainWindow extends Window {
         if (pickerContainer != null) {
             pickerContainer.mouseReleased(mouseX, mouseY, state);
         }
+        if (selectedModule != null && selectedModule.module instanceof ESP) {
+            espPreviewWidget.mouseReleased(mouseX, mouseY, state);
+        }
         super.mouseReleased(mouseX, mouseY, state);
     }
 
@@ -237,6 +257,9 @@ public class MainWindow extends Window {
                     .filter(pw -> pw.module.equals(selectedModule.module))
                     .findFirst()
                     .ifPresent(pw -> pw.keyTyped(typedChar, keyCode));
+        }
+        if (selectedModule != null && selectedModule.module instanceof ESP) {
+            espPreviewWidget.keyTyped(typedChar, keyCode);
         }
         super.keyTyped(typedChar, keyCode);
     }

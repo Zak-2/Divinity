@@ -48,6 +48,23 @@ import static org.lwjgl.opengl.GL11.*;
 public class ESP extends Module {
     private static final MultiSelectProperty entitiesProperty = new MultiSelectProperty("Targets", new String[]{"LocalPlayer", "Invisible Entities", "NPC", "TabList only"}, new String[]{"LocalPlayer", "TabList Only"});
     private static final MultiSelectProperty otherEspProperty = new MultiSelectProperty("More ESP options", new String[]{"Chest"}, new String[]{"Chest"});
+    public final BooleanProperty showEspPreview = new BooleanProperty("Show ESP Preview", true);
+    public final BooleanProperty enableEspDragging = new BooleanProperty("Enable ESP Dragging", false);
+    public final NumberProperty<Float> espPreviewScale = new NumberProperty<>("ESP Preview Scale", 1.0f, 0.5f, 2.0f, 0.1f);
+
+    // ESP Preview Offsets
+    public final NumberProperty<Float> healthBarXOffset = new NumberProperty<>("HealthBar X Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> healthBarYOffset = new NumberProperty<>("HealthBar Y Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> armorBarXOffset = new NumberProperty<>("ArmorBar X Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> armorBarYOffset = new NumberProperty<>("ArmorBar Y Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> nametagXOffset = new NumberProperty<>("Nametag X Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> nametagYOffset = new NumberProperty<>("Nametag Y Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> healthTagXOffset = new NumberProperty<>("HealthTag X Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> healthTagYOffset = new NumberProperty<>("HealthTag Y Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> heldItemXOffset = new NumberProperty<>("HeldItem X Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> heldItemYOffset = new NumberProperty<>("HeldItem Y Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> armorItemsXOffset = new NumberProperty<>("ArmorItems X Offset", 0f, -200f, 200f, 1f);
+    public final NumberProperty<Float> armorItemsYOffset = new NumberProperty<>("ArmorItems Y Offset", 0f, -200f, 200f, 1f);
     public final BooleanProperty renderBox = new BooleanProperty("Box", false);
     public final BooleanProperty boxOutline = new BooleanProperty("Box Outline", false, renderBox::getValue);
     public final BooleanProperty armorBar = new BooleanProperty("Armor Bar", true);
@@ -66,7 +83,7 @@ public class ESP extends Module {
 
     public ESP(String name, String[] aliases, Category category) {
         super(name, aliases, category);
-        addProperty(renderBox, boxType, boxColor, boxOutline, armorBar, skeleton, secondsToPersist, entitiesProperty, otherEspProperty, chestColor);
+        addProperty(renderBox, boxType, boxColor, boxOutline, armorBar, skeleton, secondsToPersist, entitiesProperty, otherEspProperty, chestColor, showEspPreview, enableEspDragging, espPreviewScale, healthBarXOffset, healthBarYOffset, armorBarXOffset, armorBarYOffset, nametagXOffset, nametagYOffset, healthTagXOffset, healthTagYOffset, heldItemXOffset, heldItemYOffset, armorItemsXOffset, armorItemsYOffset);
     }
 
     private static List<net.vecmath.Vector3d> getVector3ds(RenderGuiEvent event, EntityLivingBase entity, AxisAlignedBB aabb) {

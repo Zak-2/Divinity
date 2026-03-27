@@ -1,6 +1,8 @@
 package divinity.module.impl.render.element;
 
 import divinity.module.impl.render.element.core.DraggableElement;
+import divinity.module.impl.render.ESP;
+import divinity.module.impl.render.element.impl.ESPPreviewWidget;
 import divinity.module.impl.render.element.impl.PlayerListElement;
 import divinity.utils.RenderUtils;
 import net.minecraft.client.gui.GuiScreen;
@@ -17,6 +19,7 @@ public class GuiEditElement extends GuiScreen {
 
     public GuiEditElement() {
         draggableElements.add(new PlayerListElement(1, 85));
+        draggableElements.add(new ESPPreviewWidget((ESP) ClientManager.getInstance().getModuleManager().get(ESP.class), 1, 10, 200, 250));
     }
 
     @Override
