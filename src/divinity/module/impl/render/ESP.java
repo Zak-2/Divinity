@@ -13,6 +13,7 @@ import divinity.module.impl.render.esp.SkeletonUtils;
 import divinity.module.property.impl.*;
 import divinity.utils.ColorUtils;
 import divinity.utils.RenderUtils;
+import divinity.utils.font.FontRenderer;
 import divinity.utils.font.Fonts;
 import divinity.utils.player.PlayerUtils;
 import divinity.utils.server.ServerUtils;
@@ -49,11 +50,9 @@ public class ESP extends Module {
     private static final MultiSelectProperty entitiesProperty = new MultiSelectProperty("Targets", new String[]{"LocalPlayer", "Invisible Entities", "NPC", "TabList only"}, new String[]{"LocalPlayer", "TabList Only"});
     private static final MultiSelectProperty otherEspProperty = new MultiSelectProperty("More ESP options", new String[]{"Chest"}, new String[]{"Chest"});
     
-    // ESP Preview Properties (Only show preview toggle in ClickGUI)
     public final BooleanProperty showEspPreview = new BooleanProperty("Show ESP Preview", true);
     public final NumberProperty<Float> espPreviewScale = new NumberProperty<>("ESP Preview Scale", 1.0f, 0.5f, 2.0f, 0.1f);
 
-    // Internal Offsets (Not added as properties to the ClickGUI to avoid clutter)
     public final NumberProperty<Float> healthBarXOffset = new NumberProperty<>("healthBarXOffset", 0f, -500f, 500f, 1f);
     public final NumberProperty<Float> healthBarYOffset = new NumberProperty<>("healthBarYOffset", 0f, -500f, 500f, 1f);
     public final NumberProperty<Float> armorBarXOffset = new NumberProperty<>("armorBarXOffset", 0f, -500f, 500f, 1f);
@@ -84,7 +83,6 @@ public class ESP extends Module {
 
     public ESP(String name, String[] aliases, Category category) {
         super(name, aliases, category);
-        // Register properties for persistence but hide offsets from UI
         addProperty(
             renderBox, boxType, boxColor, boxOutline, armorBar, skeleton, secondsToPersist, 
             entitiesProperty, otherEspProperty, chestColor, 
@@ -180,7 +178,6 @@ public class ESP extends Module {
         }
         mc.entityRenderer.setupOverlayRendering();
         if (position != null) {
-            double boxWidth = .5f;
             double posX = position.x;
             double posY = position.y;
             double endPosX = position.z;
@@ -190,24 +187,21 @@ public class ESP extends Module {
             
             if (renderBox.getValue()) {
                 if (boxType.getValue().equals("Full")) {
-                    RenderUtils.drawRect(posX - .5, posY, posX + boxWidth - .5, endPosY, boxColor);
-                    RenderUtils.drawRect(posX, endPosY - boxWidth, endPosX, endPosY, boxColor);
-                    RenderUtils.drawRect(posX - .5, posY, endPosX, posY + boxWidth, boxColor);
-                    RenderUtils.drawRect(endPosX - boxWidth, posY, endPosX, endPosY, boxColor);
+                    RenderUtils.drawRectOutline((float)posX, (float)posY, (float)endPosX, (float)endPosY, 0.5f, boxColor);
                 } else {
                     final float perc = 0.2f;
-                    RenderUtils.drawRect(posX - 0.5f, posY, posX, posY + (endPosY - posY) * perc, boxColor);
-                    RenderUtils.drawRect(posX - .5, endPosY - (endPosY - posY) * perc, posX, endPosY, boxColor);
-                    RenderUtils.drawRect(posX - .5, posY, posX + (endPosX - posX) * perc, posY + .5, boxColor);
-                    RenderUtils.drawRect(endPosX - (endPosX - posX) * perc, posY, endPosX, posY + .5, boxColor);
-                    RenderUtils.drawRect(endPosX - .5, posY, endPosX, posY + (endPosY - posY) * perc, boxColor);
-                    RenderUtils.drawRect(endPosX - .5, endPosY - (endPosY - posY) * perc, endPosX, endPosY, boxColor);
-                    RenderUtils.drawRect(posX, endPosY - .5, posX + (endPosX - posX) * perc, endPosY, boxColor);
-                    RenderUtils.drawRect(endPosX - (endPosX - posX) * perc, endPosY - .5, endPosX - .5, endPosY, boxColor);
+                    RenderUtils.drawRect((float)posX - 0.5f, (float)posY, (float)posX, (float)(posY + (endPosY - posY) * perc), boxColor);
+                    RenderUtils.drawRect((float)posX - 0.5f, (float)(endPosY - (endPosY - posY) * perc), (float)posX, (float)endPosY, boxColor);
+                    RenderUtils.drawRect((float)posX - 0.5f, (float)posY, (float)(posX + (endPosX - posX) * perc), (float)posY + 0.5f, boxColor);
+                    RenderUtils.drawRect((float)(endPosX - (endPosX - posX) * perc), (float)posY, (float)endPosX, (float)posY + 0.5f, boxColor);
+                    RenderUtils.drawRect((float)endPosX - 0.5f, (float)posY, (float)endPosX, (float)(posY + (endPosY - posY) * perc), boxColor);
+                    RenderUtils.drawRect((float)endPosX - 0.5f, (float)(endPosY - (endPosY - posY) * perc), (float)endPosX, (float)endPosY, boxColor);
+                    RenderUtils.drawRect((float)posX, (float)endPosY - 0.5f, (float)(posX + (endPosX - posX) * perc), (float)endPosY, boxColor);
+                    RenderUtils.drawRect((float)(endPosX - (endPosX - posX) * perc), (float)endPosY - 0.5f, (float)endPosX - 0.5f, (float)endPosY, boxColor);
                 }
             }
 
-            // Health Bar with Offsets
+            // Health Bar
             float hX = (float) (posX - 3.5f) + healthBarXOffset.getValue();
             float hY = (float) posY + healthBarYOffset.getValue();
             float hXEnd = (float) (posX - 1f) + healthBarXOffset.getValue();
@@ -216,7 +210,7 @@ public class ESP extends Module {
             RenderUtils.drawRect(hX, hYEnd - (hYEnd - hY) * healthPerc, hXEnd, hYEnd, ColorUtils.getHealthColor(entity).getRGB());
             RenderUtils.drawRectOutline(hX, hY, hXEnd, hYEnd, 0.5f, black);
 
-            // Armor Bar with Offsets
+            // Armor Bar
             if (armorBar.getValue()) {
                 float aX = (float) posX + armorBarXOffset.getValue();
                 float aY = (float) endPosY + 1.5f + armorBarYOffset.getValue();
@@ -227,7 +221,7 @@ public class ESP extends Module {
                 RenderUtils.drawRectOutline(aX, aY, aXEnd, aYEnd, 0.5f, black);
             }
 
-            // Nametag with Offsets
+            // Nametag
             String nameText = entity.getName();
             String healthText = String.format("%.1f", entity.getHealth());
             FontRenderer font = Fonts.INTER_MEDIUM.get(10);
@@ -240,7 +234,7 @@ public class ESP extends Module {
             font.drawStringWithShadow(nameText, nX + 2, nY + 2, -1);
             font.drawStringWithShadow(healthText, nX + nameW + 2, nY + 2, ColorUtils.getHealthColor(entity).getRGB());
 
-            // Items with Offsets
+            // Items
             ItemStack held = entity.getHeldItem();
             if (held != null) {
                 RenderUtils.renderItemStack(held, (int) (endPosX + 2 + heldItemXOffset.getValue()), (int) (posY + heldItemYOffset.getValue()), 1f);
