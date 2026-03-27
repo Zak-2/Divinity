@@ -13,6 +13,7 @@ import divinity.utils.RenderUtils;
 import divinity.utils.ShaderUtils;
 import divinity.utils.font.Fonts;
 import divinity.utils.shaders.visual.BlurUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
 import org.lwjgl.input.Keyboard;
@@ -51,7 +52,7 @@ public class MainWindow extends Window {
 
     @Override
     public void drawScreen(int mouseX, int mouseY) {
-        float partialTicks = mc.timer.renderPartialTicks;
+        float partialTicks = Minecraft.getMinecraft().timer.renderPartialTicks;
         BlurUtil.blurArea(getX(), getY(), getWidth(), getHeight());
         ShaderUtils.drawRoundRect(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 5, new Color(9, 9, 14, 200).getRGB());
 

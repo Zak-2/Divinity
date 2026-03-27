@@ -411,8 +411,8 @@ public class ESP extends Module {
     private boolean isValid(EntityLivingBase entity) {
         if (entity == mc.thePlayer) return entitiesProperty.isSelected("LocalPlayer");
         if (entity.isInvisible()) return entitiesProperty.isSelected("Invisible Entities");
-        if (entity instanceof EntityPlayer && PlayerUtils.isNPC((EntityPlayer) entity)) return entitiesProperty.isSelected("NPC");
-        if (entity instanceof EntityPlayer && !ServerUtils.isTabListed((EntityPlayer) entity)) return entitiesProperty.isSelected("TabList only");
+        if (entity instanceof EntityPlayer && entity.getName().contains("NPC")) return entitiesProperty.isSelected("NPC");
+        if (entity instanceof EntityPlayer && !ServerUtils.isInTabList(entity)) return entitiesProperty.isSelected("TabList only");
         return true;
     }
 
