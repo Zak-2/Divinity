@@ -11,8 +11,6 @@ import divinity.utils.font.FontRenderer;
 import divinity.utils.font.Fonts;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
@@ -175,7 +173,7 @@ public class ESPPreviewWidget extends DraggableElement {
             String healthText = String.format("%.1f" + EnumChatFormatting.RED + " \u2764", dummyPlayer.getHealth());
 
             float fontScale = 0.8f * currentScale;
-            divinity.utils.font.FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * fontScale));
+            FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * fontScale));
 
             double healthWidth = font.getStringWidth(healthText) + 3;
             double nameWidth = font.getStringWidth(nameText) + 3;
@@ -284,7 +282,7 @@ public class ESPPreviewWidget extends DraggableElement {
 
             // Nametag
             float fontScale = 0.8f * currentScale;
-            divinity.utils.font.FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * fontScale));
+            FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * fontScale));
             String nameText = "DummyPlayer";
             String healthText = String.format("%.1f" + EnumChatFormatting.RED + " \u2764", dummyPlayer.getHealth());
             double combinedWidth = (font.getStringWidth(healthText) + 3) + (2 * currentScale) + (font.getStringWidth(nameText) + 3);
