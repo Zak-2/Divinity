@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RotationHandler {
 
@@ -19,6 +20,7 @@ public class RotationHandler {
     public float lastPitch;
     private Module activeModule = null;
     private final Map<Module, RotationRequest> requests = new ConcurrentHashMap<>();
+    private final AtomicLong submissionCounter = new AtomicLong(0);
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
@@ -27,10 +29,11 @@ public class RotationHandler {
         activeModule = null;
 
         // Find the request with the highest priority (lowest integer value)
+        // Tie-breaker: Round-robin sorting using submission order (submissionTime)
         Optional<Map.Entry<Module, RotationRequest>> winner = requests.entrySet().stream()
                 .filter(e -> e.getValue().ticksRemaining > 0)
                 .min(Comparator.comparingInt((Map.Entry<Module, RotationRequest> e) -> e.getValue().getPriority())
-                        .thenComparingInt(e -> -e.getValue().getTicksRemaining())); // Tie-breaker: longer duration wins
+                        .thenComparingLong(e -> e.getValue().submissionTime)); // Round-robin: oldest request wins ties
 
         if (winner.isPresent()) {
             RotationRequest bestReq = winner.get().getValue();
@@ -71,6 +74,10 @@ public class RotationHandler {
 
     public void submit(Module module, RotationRequest req) {
         if (module == null || req == null) return;
+        
+        // Assign a unique submission time for round-robin sorting
+        req.submissionTime = submissionCounter.getAndIncrement();
+        
         requests.put(module, req);
     }
 
@@ -81,7 +88,8 @@ public class RotationHandler {
     public Optional<RotationRequest> getBestRequest() {
         return requests.values().stream()
                 .filter(r -> r.ticksRemaining > 0)
-                .min(Comparator.comparingInt(RotationRequest::getPriority));
+                .min(Comparator.comparingInt(RotationRequest::getPriority)
+                        .thenComparingLong(r -> r.submissionTime));
     }
 
     public boolean isActiveModule(Module module) {
@@ -116,6 +124,9 @@ public class RotationHandler {
         private final int priority;
         private int ticksRemaining;
         private final boolean silentAim;
+        
+        // Internal field for round-robin tie-breaking
+        protected long submissionTime;
 
         public RotationRequest(float yaw, float pitch, int priority) {
             this(yaw, pitch, priority, 1, true);
