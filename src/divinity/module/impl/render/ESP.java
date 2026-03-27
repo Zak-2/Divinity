@@ -49,12 +49,11 @@ public class ESP extends Module {
     private static final MultiSelectProperty entitiesProperty = new MultiSelectProperty("Targets", new String[]{"LocalPlayer", "Invisible Entities", "NPC", "TabList only"}, new String[]{"LocalPlayer", "TabList Only"});
     private static final MultiSelectProperty otherEspProperty = new MultiSelectProperty("More ESP options", new String[]{"Chest"}, new String[]{"Chest"});
     
-    // ESP Preview & Dynamic Offsets
+    // ESP Preview Properties (Only show preview toggle in ClickGUI)
     public final BooleanProperty showEspPreview = new BooleanProperty("Show ESP Preview", true);
     public final NumberProperty<Float> espPreviewScale = new NumberProperty<>("ESP Preview Scale", 1.0f, 0.5f, 2.0f, 0.1f);
 
-    // These offsets are modified by dragging in the preview widget and saved to config
-    // They are hidden from the ClickGUI property list as requested
+    // Internal Offsets (Not added as properties to the ClickGUI to avoid clutter)
     public final NumberProperty<Float> healthBarXOffset = new NumberProperty<>("healthBarXOffset", 0f, -500f, 500f, 1f);
     public final NumberProperty<Float> healthBarYOffset = new NumberProperty<>("healthBarYOffset", 0f, -500f, 500f, 1f);
     public final NumberProperty<Float> armorBarXOffset = new NumberProperty<>("armorBarXOffset", 0f, -500f, 500f, 1f);
@@ -70,8 +69,8 @@ public class ESP extends Module {
     public final BooleanProperty boxOutline = new BooleanProperty("Box Outline", false, renderBox::getValue);
     public final BooleanProperty armorBar = new BooleanProperty("Armor Bar", true);
     public final BooleanProperty skeleton = new BooleanProperty("Skeleton", true);
-    private final ModeProperty boxType = new ModeProperty("Box Type", "Corners", renderBox::getValue, "Corners", "Full");
-    private final ColorProperty boxColor = new ColorProperty("Box Color", ClientManager.getInstance().getMainColor(), renderBox::getValue);
+    public final ModeProperty boxType = new ModeProperty("Box Type", "Corners", renderBox::getValue, "Corners", "Full");
+    public final ColorProperty boxColor = new ColorProperty("Box Color", ClientManager.getInstance().getMainColor(), renderBox::getValue);
     private final NumberProperty<Integer> secondsToPersist = new NumberProperty<>("Seconds to persist", 0, 0, 12, 1);
     private final ColorProperty chestColor = new ColorProperty("Chest Color", ClientManager.getInstance().getMainColor(), () -> otherEspProperty.isSelected("Chest"));
     
@@ -85,8 +84,7 @@ public class ESP extends Module {
 
     public ESP(String name, String[] aliases, Category category) {
         super(name, aliases, category);
-        // Register only the main properties in ClickGUI
-        // The offset properties are still added so they are saved to the config
+        // Register properties for persistence but hide offsets from UI
         addProperty(
             renderBox, boxType, boxColor, boxOutline, armorBar, skeleton, secondsToPersist, 
             entitiesProperty, otherEspProperty, chestColor, 
@@ -127,17 +125,15 @@ public class ESP extends Module {
                 if (isValid(player)) {
                     AxisAlignedBB aabb = getAxisAlignedBB(event, player);
                     float[][] rotations = entities.get(player);
-                    if (rotations != null) {
-                        PlayerData data = lastKnownData.get(player);
-                        if (data == null) {
-                            data = new PlayerData(rotations, aabb, event.getPartialTicks());
-                            lastKnownData.put(player, data);
-                        } else {
-                            data.boundingBox = aabb;
-                            data.rotations = rotations;
-                            data.partialTicks = event.getPartialTicks();
-                            data.deathTime = -1;
-                        }
+                    PlayerData data = lastKnownData.get(player);
+                    if (data == null) {
+                        data = new PlayerData(rotations, aabb, event.getPartialTicks());
+                        lastKnownData.put(player, data);
+                    } else {
+                        data.boundingBox = aabb;
+                        data.rotations = rotations;
+                        data.partialTicks = event.getPartialTicks();
+                        data.deathTime = -1;
                     }
                 }
             }
@@ -146,25 +142,20 @@ public class ESP extends Module {
             lastKnownData.entrySet().removeIf(entry -> {
                 EntityPlayer player = entry.getKey();
                 PlayerData data = entry.getValue();
-
-                if (!player.isEntityAlive() && data.deathTime == -1) {
-                    data.deathTime = currentTime;
-                }
-
+                if (!player.isEntityAlive() && data.deathTime == -1) data.deathTime = currentTime;
                 return !player.isEntityAlive() && data.deathTime != -1 && (currentTime - data.deathTime) >= secondsToPersist.getValue().intValue() * 1000L;
             });
 
             for (Map.Entry<EntityPlayer, PlayerData> entry : lastKnownData.entrySet()) {
                 EntityPlayer player = entry.getKey();
                 PlayerData data = entry.getValue();
-
                 if (isValid(player)) {
                     renderESP(event, player, data.boundingBox, data.partialTicks);
                 }
             }
 
         } catch (Exception exception) {
-            exception.getSuppressed();
+            exception.printStackTrace();
         } finally {
             GL11.glPopMatrix();
             GlStateManager.enableBlend();
@@ -180,9 +171,7 @@ public class ESP extends Module {
             vector = project2D(event.getSr(), vector.x - RenderManager.viewerPosX,
                     vector.y - RenderManager.viewerPosY, vector.z - RenderManager.viewerPosZ);
             if (vector != null && vector.z >= 0.0 && vector.z < 1.0) {
-                if (position == null) {
-                    position = new Vector4d(vector.x, vector.y, vector.z, 0.0);
-                }
+                if (position == null) position = new Vector4d(vector.x, vector.y, vector.z, 0.0);
                 position.x = Math.min(vector.x, position.x);
                 position.y = Math.min(vector.y, position.y);
                 position.z = Math.max(vector.x, position.z);
@@ -198,115 +187,71 @@ public class ESP extends Module {
             double endPosY = position.w;
             int boxColor = this.boxColor.getValue().getRGB();
             final int black = new Color(0, 0, 0, 255).getRGB();
+            
             if (renderBox.getValue()) {
-                switch (boxType.getValue()) {
-                    case "Full":
-                        // Left
-                        RenderUtils.drawRect(posX - .5, posY, posX + boxWidth - .5, endPosY,
-                                boxColor);
-                        // Bottom
-                        RenderUtils.drawRect(posX, endPosY - boxWidth, endPosX, endPosY,
-                                boxColor);
-                        // Top
-                        RenderUtils.drawRect(posX - .5, posY, endPosX, posY + boxWidth,
-                                boxColor);
-                        // Right
-                        RenderUtils.drawRect(endPosX - boxWidth, posY, endPosX, endPosY,
-                                boxColor);
-                        break;
-                    case "Corners":
-                        final float perc = 0.4f / 2f;
-
-                        RenderUtils.drawRect(posX - 0.5f, posY, posX, posY + (endPosY - posY) * perc,
-                                boxColor);
-                        RenderUtils.drawRect(posX - .5, endPosY - (endPosY - posY) * perc, posX, endPosY,
-                                boxColor);
-                        RenderUtils.drawRect(posX - .5, posY, posX + (endPosX - posX) * perc, posY + .5,
-                                boxColor);
-                        RenderUtils.drawRect(endPosX - (endPosX - posX) * perc, posY, endPosX, posY + .5,
-                                boxColor);
-                        RenderUtils.drawRect(endPosX - .5, posY, endPosX, posY + (endPosY - posY) * perc,
-                                boxColor);
-                        RenderUtils.drawRect(endPosX - .5, endPosY - (endPosY - posY) * perc, endPosX, endPosY,
-                                boxColor);
-                        RenderUtils.drawRect(posX, endPosY - .5, posX + (endPosX - posX) * perc, endPosY,
-                                boxColor);
-                        RenderUtils.drawRect(endPosX - (endPosX - posX) * perc, endPosY - .5, endPosX - .5, endPosY,
-                                boxColor);
-                        break;
+                if (boxType.getValue().equals("Full")) {
+                    RenderUtils.drawRect(posX - .5, posY, posX + boxWidth - .5, endPosY, boxColor);
+                    RenderUtils.drawRect(posX, endPosY - boxWidth, endPosX, endPosY, boxColor);
+                    RenderUtils.drawRect(posX - .5, posY, endPosX, posY + boxWidth, boxColor);
+                    RenderUtils.drawRect(endPosX - boxWidth, posY, endPosX, endPosY, boxColor);
+                } else {
+                    final float perc = 0.2f;
+                    RenderUtils.drawRect(posX - 0.5f, posY, posX, posY + (endPosY - posY) * perc, boxColor);
+                    RenderUtils.drawRect(posX - .5, endPosY - (endPosY - posY) * perc, posX, endPosY, boxColor);
+                    RenderUtils.drawRect(posX - .5, posY, posX + (endPosX - posX) * perc, posY + .5, boxColor);
+                    RenderUtils.drawRect(endPosX - (endPosX - posX) * perc, posY, endPosX, posY + .5, boxColor);
+                    RenderUtils.drawRect(endPosX - .5, posY, endPosX, posY + (endPosY - posY) * perc, boxColor);
+                    RenderUtils.drawRect(endPosX - .5, endPosY - (endPosY - posY) * perc, endPosX, endPosY, boxColor);
+                    RenderUtils.drawRect(posX, endPosY - .5, posX + (endPosX - posX) * perc, endPosY, boxColor);
+                    RenderUtils.drawRect(endPosX - (endPosX - posX) * perc, endPosY - .5, endPosX - .5, endPosY, boxColor);
                 }
             }
 
-            // Apply dragging offsets to global rendering
-            double hX = (endPosX - .5 - boxWidth + 3) + healthBarXOffset.getValue();
-            double hY = (endPosY - .5 + (posY - endPosY + .5) * PlayerUtils.healthPercentage(entity)) + healthBarYOffset.getValue();
-            double hXEnd = (endPosX + .5 + 2.5f) + healthBarXOffset.getValue();
-            double hYEnd = (endPosY + .5) + healthBarYOffset.getValue();
+            // Health Bar with Offsets
+            float hX = (float) (posX - 3.5f) + healthBarXOffset.getValue();
+            float hY = (float) posY + healthBarYOffset.getValue();
+            float hXEnd = (float) (posX - 1f) + healthBarXOffset.getValue();
+            float hYEnd = (float) endPosY + healthBarYOffset.getValue();
+            float healthPerc = PlayerUtils.healthPercentage(entity);
+            RenderUtils.drawRect(hX, hYEnd - (hYEnd - hY) * healthPerc, hXEnd, hYEnd, ColorUtils.getHealthColor(entity).getRGB());
+            RenderUtils.drawRectOutline(hX, hY, hXEnd, hYEnd, 0.5f, black);
 
-            // Health
-            RenderUtils.drawRect((float) hX, (float) hY, (float) hXEnd, (float) hYEnd, ColorUtils.getHealthColor(entity).getRGB());
-            RenderUtils.drawRectOutline((float) hX, (float) (endPosY - .5 + (posY - endPosY + .5)) + healthBarYOffset.getValue(), (float) hXEnd, (float) hYEnd, 0.5f, black);
-
+            // Armor Bar with Offsets
             if (armorBar.getValue()) {
-                double aX = (posX - 1) + armorBarXOffset.getValue();
-                double aY = (endPosY - boxWidth + 3) + armorBarYOffset.getValue();
-                double aXEnd = (posX - 1 + (endPosX + 1 - posX) * PlayerUtils.armorPercentage(entity)) + armorBarXOffset.getValue();
-                double aYEnd = (endPosY + 3.5f) + armorBarYOffset.getValue();
-                
-                RenderUtils.drawRect((float) aX, (float) aY, (float) aXEnd, (float) aYEnd, Color.CYAN.getRGB());
-                RenderUtils.drawRectOutline((float) aX, (float) aY, (float) (posX - 1 + (endPosX + 1 - posX)) + armorBarXOffset.getValue(), (float) aYEnd, 0.5f, black);
+                float aX = (float) posX + armorBarXOffset.getValue();
+                float aY = (float) endPosY + 1.5f + armorBarYOffset.getValue();
+                float aXEnd = (float) endPosX + armorBarXOffset.getValue();
+                float aYEnd = (float) endPosY + 3.5f + armorBarYOffset.getValue();
+                float armorPerc = PlayerUtils.armorPercentage(entity);
+                RenderUtils.drawRect(aX, aY, aX + (aXEnd - aX) * armorPerc, aYEnd, Color.CYAN.getRGB());
+                RenderUtils.drawRectOutline(aX, aY, aXEnd, aYEnd, 0.5f, black);
             }
 
-            String healthText = String.format("%.1f" + EnumChatFormatting.RED + " \u2764", entity.getHealth());
-            double healthWidth = Fonts.INTER_MEDIUM.get(10).getStringWidth(healthText) + 3;
-            healthWidth = Math.min(healthWidth, 100);
+            // Nametag with Offsets
+            String nameText = entity.getName();
+            String healthText = String.format("%.1f", entity.getHealth());
+            FontRenderer font = Fonts.INTER_MEDIUM.get(10);
+            float nameW = font.getStringWidth(nameText) + 4;
+            float healthW = font.getStringWidth(healthText) + 4;
+            float combinedW = nameW + healthW + 2;
+            float nX = (float) (posX + (endPosX - posX) / 2f - combinedW / 2f) + nametagXOffset.getValue();
+            float nY = (float) posY - 12 + nametagYOffset.getValue();
+            RenderUtils.drawRect(nX, nY, nX + combinedW, nY + 10, new Color(0, 0, 0, 150).getRGB());
+            font.drawStringWithShadow(nameText, nX + 2, nY + 2, -1);
+            font.drawStringWithShadow(healthText, nX + nameW + 2, nY + 2, ColorUtils.getHealthColor(entity).getRGB());
 
-            String accountName = entity.getName();
-            double nameWidth1 = Fonts.INTER_MEDIUM.get(10).getStringWidth(accountName) + 3;
-            nameWidth1 = Math.min(nameWidth1, 100);
-
-            double gap = 2;
-            double combinedWidth = healthWidth + gap + nameWidth1;
-            double centerX = posX + (endPosX - posX) / 2.0;
-            double groupLeft = centerX - (combinedWidth / 2.0) + nametagXOffset.getValue();
-            double rectTop = posY - 10 + nametagYOffset.getValue();
-            double rectBottom = rectTop + 8;
-
-            // Health rect
-            {
-                double healthRightX = groupLeft + healthWidth;
-                RenderUtils.drawRect((float) groupLeft, (float) rectTop, (float) healthRightX, (float) rectBottom, new Color(0, 0, 0, 120).getRGB());
-                Fonts.INTER_MEDIUM.get(10).drawStringWithShadow(healthText, (float) (groupLeft + 1.5f), (float) (rectTop + 3.5f), 0xFFFFFFFF);
+            // Items with Offsets
+            ItemStack held = entity.getHeldItem();
+            if (held != null) {
+                RenderUtils.renderItemStack(held, (int) (endPosX + 2 + heldItemXOffset.getValue()), (int) (posY + heldItemYOffset.getValue()), 1f);
             }
 
-            // Name rect
-            {
-                double nameLeftX = groupLeft + healthWidth + gap;
-                double nameRightX = nameLeftX + nameWidth1;
-                RenderUtils.drawRect((float) nameLeftX, (float) rectTop, (float) nameRightX, (float) rectBottom, new Color(0, 0, 0, 120).getRGB());
-                String coloredAccount = (ClientManager.getInstance().getFriendManager().isFriend(entity.getName()) ? EnumChatFormatting.GREEN : EnumChatFormatting.WHITE) + accountName + EnumChatFormatting.WHITE;
-                Fonts.INTER_MEDIUM.get(10).drawStringWithShadow(coloredAccount, (float) (nameLeftX + 1.5f), (float) (rectTop + 3.5f), ColorUtils.getColorRGB(PlayerUtils.getPlayerTeamColor(entity)));
-            }
-
-            ItemStack heldItem = entity.getHeldItem();
-            if (heldItem != null) {
-                float itemX = (float) (endPosX + 5) + heldItemXOffset.getValue();
-                float itemY = (float) posY + heldItemYOffset.getValue();
-                RenderUtils.renderItemStack(heldItem, (int) itemX, (int) itemY, 1);
-            }
-
-            List<ItemStack> armorItems = new ArrayList<>();
+            float aiY = (float) posY + 18 + armorItemsYOffset.getValue();
             for (int i = 0; i < 4; i++) {
                 ItemStack armor = entity.inventory.armorInventory[i];
-                if (armor != null) armorItems.add(armor);
-            }
-
-            if (!armorItems.isEmpty()) {
-                float itemX = (float) (endPosX + 25) + armorItemsXOffset.getValue();
-                float itemY = (float) posY + armorItemsYOffset.getValue();
-                for (ItemStack item : armorItems) {
-                    RenderUtils.renderItemStack(item, (int) itemX, (int) itemY, 1);
-                    itemY += 16;
+                if (armor != null) {
+                    RenderUtils.renderItemStack(armor, (int) (endPosX + 2 + armorItemsXOffset.getValue()), (int) aiY, 1f);
+                    aiY += 16;
                 }
             }
         }
@@ -316,7 +261,6 @@ public class ESP extends Module {
         GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelView);
         GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projection);
         GL11.glGetInteger(GL11.GL_VIEWPORT, viewport);
-
         if (GLU.gluProject((float) x, (float) y, (float) z, modelView, projection, viewport, vector)) {
             return new Vector3d(vector.get(0) / sr.getScaleFactor(), (Display.getHeight() - vector.get(1)) / sr.getScaleFactor(), vector.get(2));
         }
@@ -336,7 +280,6 @@ public class ESP extends Module {
         public AxisAlignedBB boundingBox;
         public float partialTicks;
         public long deathTime = -1;
-
         public PlayerData(float[][] rotations, AxisAlignedBB boundingBox, float partialTicks) {
             this.rotations = rotations;
             this.boundingBox = boundingBox;

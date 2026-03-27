@@ -7,8 +7,6 @@ import divinity.gui.click.components.module.ColorPickerContainer;
 import divinity.gui.click.components.module.DropdownComponent;
 import divinity.module.Category;
 import divinity.module.Module;
-import divinity.module.impl.render.ESP;
-import divinity.module.impl.render.element.impl.ESPPreviewWidget;
 import divinity.utils.RenderUtils;
 import divinity.utils.ShaderUtils;
 import divinity.utils.font.Fonts;
@@ -34,7 +32,6 @@ public class MainWindow extends Window {
     private List<CategoryButtonComponent> categoryButtons;
     private List<ModuleButtonComponent> moduleButtons;
     private List<ModulePropertyWindow> propertyWindows;
-    private ESPPreviewWidget espPreviewWidget; // Declare here, initialize once
     private int totalContentHeight = 0;
 
     public MainWindow(float x, float y, float width, float height) {
@@ -50,7 +47,6 @@ public class MainWindow extends Window {
 
     @Override
     public void drawScreen(int mouseX, int mouseY) {
-        float partialTicks = mc.timer.renderPartialTicks;
         BlurUtil.blurArea(getX(), getY(), getWidth(), getHeight());
         ShaderUtils.drawRoundRect(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 5, new Color(9, 9, 14, 200).getRGB());
 
@@ -86,23 +82,6 @@ public class MainWindow extends Window {
 
         if (dropdownComponent != null) dropdownComponent.drawScreen(mouseX, mouseY);
         if (pickerContainer != null) pickerContainer.drawScreen(mouseX, mouseY);
-
-        // Render ESP Preview Widget ONLY if ESP module is selected
-        if (selectedModule != null && selectedModule.module instanceof ESP) {
-            if (espPreviewWidget == null) {
-                espPreviewWidget = new ESPPreviewWidget((ESP) selectedModule.module, (int) (getX() + getWidth() + 10), (int) getY(), 200, 250);
-            }
-            
-            // Sync position with main window if it's being dragged
-            if (this.isDragging()) {
-                espPreviewWidget.setX((int) (getX() + getWidth() + 10));
-                espPreviewWidget.setY((int) getY());
-            }
-            espPreviewWidget.drawScreen(mouseX, mouseY, partialTicks);
-        } else {
-            // If ESP module is not selected, ensure the preview widget is not active
-            espPreviewWidget = null;
-        }
 
         allowClick = dropdownComponent == null && pickerContainer == null;
         super.drawScreen(mouseX, mouseY);
@@ -198,20 +177,11 @@ public class MainWindow extends Window {
         if (dropdownComponent != null) dropdownComponent.mouseClicked(mouseX, mouseY, mouseButton);
         if (pickerContainer != null) pickerContainer.mouseClicked(mouseX, mouseY, mouseButton);
         
-        // Handle widget clicks only if it exists and is for the ESP module
-        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
-            espPreviewWidget.mouseClicked(mouseX, mouseY, mouseButton);
-        }
-        
         super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
     @Override
     public void handleMouseInput() {
-        // Handle widget mouse input only if it exists and is for the ESP module
-        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
-            espPreviewWidget.handleMouseInput();
-        }
         super.handleMouseInput();
 
         int mouseWheel = Mouse.getEventDWheel();
@@ -251,11 +221,6 @@ public class MainWindow extends Window {
             pickerContainer.mouseReleased(mouseX, mouseY, state);
         }
         
-        // Handle widget mouse release only if it exists and is for the ESP module
-        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
-            espPreviewWidget.mouseReleased(mouseX, mouseY, state);
-        }
-        
         super.mouseReleased(mouseX, mouseY, state);
     }
 
@@ -274,11 +239,6 @@ public class MainWindow extends Window {
                     .filter(pw -> pw.module.equals(selectedModule.module))
                     .findFirst()
                     .ifPresent(pw -> pw.keyTyped(typedChar, keyCode));
-        }
-        
-        // Handle widget key typed only if it exists and is for the ESP module
-        if (espPreviewWidget != null && selectedModule != null && selectedModule.module instanceof ESP) {
-            espPreviewWidget.keyTyped(typedChar, keyCode);
         }
         
         super.keyTyped(typedChar, keyCode);

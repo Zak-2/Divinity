@@ -3,6 +3,7 @@ package divinity.gui.click.windows;
 import divinity.gui.click.components.Component;
 import divinity.gui.click.components.module.*;
 import divinity.module.Module;
+import divinity.module.impl.render.ESP;
 import divinity.module.property.Property;
 import divinity.module.property.impl.*;
 import divinity.utils.RenderUtils;
@@ -144,7 +145,17 @@ public class ModulePropertyWindow extends Window {
     private void addComponents(Module module) {
         this.components = new ArrayList<>();
         int offset = 0;
+        
+        // If the module is ESP, add the preview component at the top
+        if (module instanceof ESP) {
+            components.add(new ESPPreviewComponent((ESP) module, getX(), getY() + offset, getWidth(), 200, 5));
+            offset += 205;
+        }
+
         for (Property property : module.getProperties()) {
+            // Hide the internal offset properties from the UI
+            if (property.getName().contains("Offset")) continue;
+
             if (property instanceof BooleanProperty) {
                 components.add(new CheckboxComponent((BooleanProperty) property, getX(), getY() + offset, getWidth(), 16, 2));
                 offset += 18;

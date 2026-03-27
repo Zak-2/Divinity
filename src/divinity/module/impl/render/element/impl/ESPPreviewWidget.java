@@ -2,7 +2,6 @@ package divinity.module.impl.render.element.impl;
 
 import divinity.ClientManager;
 import divinity.module.impl.render.ESP;
-import divinity.module.impl.render.element.core.DraggableElement;
 import divinity.utils.ColorUtils;
 import divinity.utils.MouseUtils;
 import divinity.utils.RenderUtils;
@@ -21,25 +20,25 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
 import java.awt.*;
-import java.util.Arrays;
 
-public class ESPPreviewWidget extends DraggableElement {
+/**
+ * ESP Preview Component.
+ * This is no longer a standalone widget but a component rendered inside the ESP module's settings.
+ */
+public class ESPPreviewWidget {
 
+    private final Minecraft mc = Minecraft.getMinecraft();
     private final ESP espModule;
     private EntityOtherPlayerMP dummyPlayer;
 
     private int draggingElement = -1; // -1: none, 0: healthBar, 1: armorBar, 2: nametag, 4: heldItem, 5: armorItems
-    private int dragOffsetX, dragOffsetY;
+    private float dragOffsetX, dragOffsetY;
 
     private static final int RESET_BUTTON_HEIGHT = 15;
     private static final int RESET_BUTTON_WIDTH = 80;
 
-    public ESPPreviewWidget(ESP espModule, int x, int y, int width, int height) {
-        super(x, y, width, height);
+    public ESPPreviewWidget(ESP espModule) {
         this.espModule = espModule;
-        this.setName("ESP Preview");
-        this.setEnabled(espModule.showEspPreview.getValue());
-
         initDummyPlayer();
     }
 
@@ -62,14 +61,14 @@ public class ESPPreviewWidget extends DraggableElement {
         }
     }
 
-    @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+    public void drawScreen(int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
         if (!espModule.showEspPreview.getValue()) return;
 
         if (dummyPlayer == null && mc.theWorld != null) initDummyPlayer();
 
-        ShaderUtils.drawRoundRect(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 5, new Color(9, 9, 14, 200).getRGB());
-        Fonts.INTER_MEDIUM.get(16).drawCenteredStringWithShadow(getName(), getX() + getWidth() / 2f, getY() + 5, -1);
+        // Draw background
+        ShaderUtils.drawRoundRect(x, y, x + width, y + height, 5, new Color(15, 15, 20, 255).getRGB());
+        Fonts.INTER_MEDIUM.get(16).drawCenteredStringWithShadow("ESP Preview", x + width / 2f, y + 5, -1);
 
         if (dummyPlayer != null) {
             GlStateManager.enableDepth();
@@ -79,32 +78,29 @@ public class ESPPreviewWidget extends DraggableElement {
             GlStateManager.blendFunc(770, 771);
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 
-            // Draw player model with correct orientation
-            drawPlayerModel(getX() + getWidth() / 2f, getY() + getHeight() / 2f + 45, 45, partialTicks, dummyPlayer);
+            // Draw player model
+            drawPlayerModel(x + width / 2f, y + height / 2f + 45, 45, partialTicks, dummyPlayer);
 
             RenderHelper.disableStandardItemLighting();
             GlStateManager.disableDepth();
             
-            renderESPElements(mouseX, mouseY, partialTicks);
+            renderESPElements(mouseX, mouseY, x, y, width, height, partialTicks);
         }
 
-        float resetButtonX = getX() + getWidth() / 2f - RESET_BUTTON_WIDTH / 2f;
-        float resetButtonY = getY() + getHeight() - RESET_BUTTON_HEIGHT - 5;
-        boolean hoveredReset = MouseUtils.isHovered(mouseX, mouseY, resetButtonX, resetButtonY, resetButtonX + RESET_BUTTON_WIDTH, resetButtonY + RESET_BUTTON_HEIGHT);
-        ShaderUtils.drawRoundRect(resetButtonX, resetButtonY, resetButtonX + RESET_BUTTON_WIDTH, resetButtonY + RESET_BUTTON_HEIGHT, 3, hoveredReset ? ClientManager.getInstance().getSecondaryColor().getRGB() : new Color(50, 50, 50).getRGB());
-        Fonts.INTER_MEDIUM.get(12).drawCenteredString("Reset Positions", resetButtonX + RESET_BUTTON_WIDTH / 2f, resetButtonY + RESET_BUTTON_HEIGHT / 2f - Fonts.INTER_MEDIUM.get(12).getHeight() / 2f, -1);
-
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        // Reset button
+        float rbX = x + width / 2f - RESET_BUTTON_WIDTH / 2f;
+        float rbY = y + height - RESET_BUTTON_HEIGHT - 5;
+        boolean hoveredReset = MouseUtils.isHovered(mouseX, mouseY, rbX, rbY, rbX + RESET_BUTTON_WIDTH, rbY + RESET_BUTTON_HEIGHT);
+        ShaderUtils.drawRoundRect(rbX, rbY, rbX + RESET_BUTTON_WIDTH, rbY + RESET_BUTTON_HEIGHT, 3, hoveredReset ? ClientManager.getInstance().getSecondaryColor().getRGB() : new Color(50, 50, 50).getRGB());
+        Fonts.INTER_MEDIUM.get(12).drawCenteredString("Reset Positions", rbX + RESET_BUTTON_WIDTH / 2f, rbY + RESET_BUTTON_HEIGHT / 2f - Fonts.INTER_MEDIUM.get(12).getHeight() / 2f, -1);
     }
 
     private void drawPlayerModel(float x, float y, float scale, float partialTicks, EntityLivingBase entity) {
         GlStateManager.enableColorMaterial();
         GlStateManager.pushMatrix();
         GlStateManager.translate(x, y, 50.0F);
-        GlStateManager.scale(-scale, scale, scale); // Corrected Y scale
+        GlStateManager.scale(-scale, scale, scale);
         GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
-        GlStateManager.rotate(entity.rotationYawHead - entity.renderYawOffset, 0.0F, 1.0F, 0.0F); // Added for proper head rotation
-        GlStateManager.rotate(entity.rotationPitch, 1.0F, 0.0F, 0.0F); // Added for proper pitch
         
         RenderHelper.enableStandardItemLighting();
         RenderManager rendermanager = Minecraft.getMinecraft().getRenderManager();
@@ -121,174 +117,145 @@ public class ESPPreviewWidget extends DraggableElement {
         GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
     }
 
-    private void renderESPElements(int mouseX, int mouseY, float partialTicks) {
-        // Calculate the center of the player model on screen
-        float playerModelCenterX = getX() + getWidth() / 2f;
-        float playerModelCenterY = getY() + getHeight() / 2f + 45; // Adjusted to match player model base
-        float currentScale = espModule.espPreviewScale.getValue();
+    private void renderESPElements(int mouseX, int mouseY, float x, float y, float width, float height, float partialTicks) {
+        float playerCenterX = x + width / 2f;
+        float playerCenterY = y + height / 2f + 45;
+        float scale = espModule.espPreviewScale.getValue();
 
-        // Define a reference point for ESP elements relative to the player model
-        // This is where the elements would naturally appear if no offsets were applied
-        float espBaseX = playerModelCenterX;
-        float espBaseY = playerModelCenterY - 60; // Roughly top of the player's head
+        float espBaseX = playerCenterX;
+        float espBaseY = playerCenterY - 60;
 
-        // 1. Health Bar
-        if (espModule.armorBar.getValue()) {
-            float hbW = 2.5f * currentScale;
-            float hbH = 30f * currentScale;
-            // Position relative to the player model's left side
-            float x = espBaseX - 25 * currentScale + espModule.healthBarXOffset.getValue();
-            float y = espBaseY + espModule.healthBarYOffset.getValue();
+        // Box ESP Rendering in Preview
+        if (espModule.renderBox.getValue()) {
+            float boxW = 35 * scale;
+            float boxH = 65 * scale;
+            float boxX = espBaseX - boxW / 2f;
+            float boxY = espBaseY;
+            int boxColor = espModule.boxColor.getValue().getRGB();
 
-            float healthPercentage = dummyPlayer.getHealth() / dummyPlayer.getMaxHealth();
-            float filledHeight = hbH * healthPercentage;
-            RenderUtils.drawRect(x, y + (hbH - filledHeight), x + hbW, y + hbH, ColorUtils.getHealthColor(dummyPlayer).getRGB());
-            RenderUtils.drawRectOutline(x, y, x + hbW, y + hbH, 0.5f, Color.BLACK.getRGB());
-
-            if (draggingElement == 0) {
-                espModule.healthBarXOffset.setValue((mouseX - (espBaseX - 25 * currentScale)) - dragOffsetX);
-                espModule.healthBarYOffset.setValue((mouseY - espBaseY) - dragOffsetY);
+            if (espModule.boxType.getValue().equals("Full")) {
+                RenderUtils.drawRectOutline(boxX, boxY, boxX + boxW, boxY + boxH, 1f, boxColor);
+            } else {
+                float perc = 0.2f;
+                // Corners
+                RenderUtils.drawRect(boxX, boxY, boxX + boxW * perc, boxY + 1, boxColor);
+                RenderUtils.drawRect(boxX, boxY, boxX + 1, boxY + boxH * perc, boxColor);
+                RenderUtils.drawRect(boxX + boxW * (1 - perc), boxY, boxX + boxW, boxY + 1, boxColor);
+                RenderUtils.drawRect(boxX + boxW - 1, boxY, boxX + boxW, boxY + boxH * perc, boxColor);
+                RenderUtils.drawRect(boxX, boxY + boxH - 1, boxX + boxW * perc, boxY + boxH, boxColor);
+                RenderUtils.drawRect(boxX, boxY + boxH * (1 - perc), boxX + 1, boxY + boxH, boxColor);
+                RenderUtils.drawRect(boxX + boxW * (1 - perc), boxY + boxH - 1, boxX + boxW, boxY + boxH, boxColor);
+                RenderUtils.drawRect(boxX + boxW - 1, boxY + boxH * (1 - perc), boxX + boxW, boxY + boxH, boxColor);
             }
         }
 
-        // 2. Armor Bar
+        // Health Bar
+        float hbW = 2.5f * scale;
+        float hbH = 65f * scale;
+        float hbX = espBaseX - 22 * scale + espModule.healthBarXOffset.getValue();
+        float hbY = espBaseY + espModule.healthBarYOffset.getValue();
+        RenderUtils.drawRect(hbX, hbY, hbX + hbW, hbY + hbH, ColorUtils.getHealthColor(dummyPlayer).getRGB());
+        RenderUtils.drawRectOutline(hbX, hbY, hbX + hbW, hbY + hbH, 0.5f, Color.BLACK.getRGB());
+        if (draggingElement == 0) {
+            espModule.healthBarXOffset.setValue(mouseX - (espBaseX - 22 * scale) - dragOffsetX);
+            espModule.healthBarYOffset.setValue(mouseY - espBaseY - dragOffsetY);
+        }
+
+        // Armor Bar
         if (espModule.armorBar.getValue()) {
-            float abW = 30f * currentScale;
-            float abH = 2.5f * currentScale;
-            // Position relative to the player model's bottom center
-            float x = espBaseX - (abW / 2) + espModule.armorBarXOffset.getValue();
-            float y = espBaseY + 50 * currentScale + espModule.armorBarYOffset.getValue();
-
-            float armorPercentage = (float) dummyPlayer.getTotalArmorValue() / 20.0f;
-            RenderUtils.drawRect(x, y, x + abW * armorPercentage, y + abH, Color.CYAN.getRGB());
-            RenderUtils.drawRectOutline(x, y, x + abW, y + abH, 0.5f, Color.BLACK.getRGB());
-
+            float abW = 35f * scale;
+            float abH = 2.5f * scale;
+            float abX = espBaseX - abW / 2f + espModule.armorBarXOffset.getValue();
+            float abY = espBaseY + 68 * scale + espModule.armorBarYOffset.getValue();
+            RenderUtils.drawRect(abX, abY, abX + abW, abY + abH, Color.CYAN.getRGB());
+            RenderUtils.drawRectOutline(abX, abY, abX + abW, abY + abH, 0.5f, Color.BLACK.getRGB());
             if (draggingElement == 1) {
-                espModule.armorBarXOffset.setValue((mouseX - (espBaseX - (abW / 2))) - dragOffsetX);
-                espModule.armorBarYOffset.setValue((mouseY - (espBaseY + 50 * currentScale)) - dragOffsetY);
+                espModule.armorBarXOffset.setValue(mouseX - (espBaseX - abW / 2f) - dragOffsetX);
+                espModule.armorBarYOffset.setValue(mouseY - (espBaseY + 68 * scale) - dragOffsetY);
             }
         }
 
-        // 3. Nametag (Using Local Player Name)
-        String nameText = mc.thePlayer != null ? mc.thePlayer.getName() : "You";
-        String healthText = String.format("%.1f" + EnumChatFormatting.RED + " \u2764", dummyPlayer.getHealth());
-        FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * currentScale));
-        double hW = font.getStringWidth(healthText) + 3;
-        double nW = font.getStringWidth(nameText) + 3;
-        double combinedW = hW + 2 * currentScale + nW;
-        
-        // Position relative to the player model's top center
-        double groupL = espBaseX - (combinedW / 2.0) + espModule.nametagXOffset.getValue();
-        double rectT = espBaseY - 10 * currentScale + espModule.nametagYOffset.getValue();
-        double rectB = rectT + 10 * currentScale;
-
-        RenderUtils.drawRect((float) groupL, (float) rectT, (float) (groupL + hW), (float) rectB, new Color(0, 0, 0, 120).getRGB());
-        font.drawStringWithShadow(healthText, (float) (groupL + 1.5f), (float) (rectT + 2f * currentScale), -1);
-        double nL = groupL + hW + 2 * currentScale;
-        RenderUtils.drawRect((float) nL, (float) rectT, (float) (nL + nW), (float) rectB, new Color(0, 0, 0, 120).getRGB());
-        font.drawStringWithShadow(nameText, (float) (nL + 1.5f), (float) (rectT + 2f * currentScale), -1);
-
+        // Nametag
+        String name = mc.thePlayer.getName();
+        FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * scale));
+        float nW = font.getStringWidth(name) + 4;
+        float nX = espBaseX - nW / 2f + espModule.nametagXOffset.getValue();
+        float nY = espBaseY - 12 * scale + espModule.nametagYOffset.getValue();
+        RenderUtils.drawRect(nX, nY, nX + nW, nY + 10 * scale, new Color(0, 0, 0, 150).getRGB());
+        font.drawStringWithShadow(name, nX + 2, nY + 2 * scale, -1);
         if (draggingElement == 2) {
-            espModule.nametagXOffset.setValue((mouseX - (espBaseX - (combinedW / 2.0))) - dragOffsetX);
-            espModule.nametagYOffset.setValue((mouseY - (espBaseY - 10 * currentScale)) - dragOffsetY);
+            espModule.nametagXOffset.setValue(mouseX - (espBaseX - nW / 2f) - dragOffsetX);
+            espModule.nametagYOffset.setValue(mouseY - (espBaseY - 12 * scale) - dragOffsetY);
         }
 
-        // 4. Held Item
-        // Position relative to the player model's right hand
+        // Items
         ItemStack held = dummyPlayer.getHeldItem();
         if (held != null) {
-            float x = espBaseX + 20 * currentScale + espModule.heldItemXOffset.getValue();
-            float y = espBaseY + 20 * currentScale + espModule.heldItemYOffset.getValue();
-            RenderUtils.renderItemStack(held, (int) x, (int) y, currentScale);
+            float hiX = espBaseX + 20 * scale + espModule.heldItemXOffset.getValue();
+            float hiY = espBaseY + 20 * scale + espModule.heldItemYOffset.getValue();
+            RenderUtils.renderItemStack(held, (int) hiX, (int) hiY, scale);
             if (draggingElement == 4) {
-                espModule.heldItemXOffset.setValue((mouseX - (espBaseX + 20 * currentScale)) - dragOffsetX);
-                espModule.heldItemYOffset.setValue((mouseY - (espBaseY + 20 * currentScale)) - dragOffsetY);
+                espModule.heldItemXOffset.setValue(mouseX - (espBaseX + 20 * scale) - dragOffsetX);
+                espModule.heldItemYOffset.setValue(mouseY - (espBaseY + 20 * scale) - dragOffsetY);
             }
         }
 
-        // 5. Armor Items
-        // Position relative to the player model's right side, stacked vertically
-        float armorX = espBaseX + 25 * currentScale + espModule.armorItemsXOffset.getValue();
-        float armorY = espBaseY + espModule.armorItemsYOffset.getValue();
+        float aiX = espBaseX + 20 * scale + espModule.armorItemsXOffset.getValue();
+        float aiY = espBaseY + 40 * scale + espModule.armorItemsYOffset.getValue();
         for (int i = 0; i < 4; i++) {
             ItemStack armor = dummyPlayer.inventory.armorInventory[i];
             if (armor != null) {
-                float y = armorY + (3 - i) * (18 * currentScale); // Stack from bottom to top
-                RenderUtils.renderItemStack(armor, (int) armorX, (int) y, currentScale);
+                RenderUtils.renderItemStack(armor, (int) aiX, (int) (aiY + (3 - i) * 16 * scale), scale);
             }
         }
         if (draggingElement == 5) {
-            espModule.armorItemsXOffset.setValue((mouseX - (espBaseX + 25 * currentScale)) - dragOffsetX);
-            espModule.armorItemsYOffset.setValue((mouseY - espBaseY) - dragOffsetY);
+            espModule.armorItemsXOffset.setValue(mouseX - (espBaseX + 20 * scale) - dragOffsetX);
+            espModule.armorItemsYOffset.setValue(mouseY - (espBaseY + 40 * scale) - dragOffsetY);
         }
     }
 
-    @Override
-    public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+    public void mouseClicked(int mouseX, int mouseY, int mouseButton, float x, float y, float width, float height) {
         if (!espModule.showEspPreview.getValue()) return;
 
-        float rbX = getX() + getWidth() / 2f - RESET_BUTTON_WIDTH / 2f;
-        float rbY = getY() + getHeight() - RESET_BUTTON_HEIGHT - 5;
+        float rbX = x + width / 2f - RESET_BUTTON_WIDTH / 2f;
+        float rbY = y + height - RESET_BUTTON_HEIGHT - 5;
         if (MouseUtils.isHovered(mouseX, mouseY, rbX, rbY, rbX + RESET_BUTTON_WIDTH, rbY + RESET_BUTTON_HEIGHT)) {
             if (mouseButton == 0) { resetOffsets(); return; }
         }
 
         if (mouseButton == 0) {
-            float playerModelCenterX = getX() + getWidth() / 2f;
-            float playerModelCenterY = getY() + getHeight() / 2f + 45;
-            float currentScale = espModule.espPreviewScale.getValue();
+            float playerCenterX = x + width / 2f;
+            float playerCenterY = y + height / 2f + 45;
+            float scale = espModule.espPreviewScale.getValue();
+            float espBaseX = playerCenterX;
+            float espBaseY = playerCenterY - 60;
 
-            float espBaseX = playerModelCenterX;
-            float espBaseY = playerModelCenterY - 60;
-
-            // Check elements for dragging (Bounding Box logic)
+            // Check elements for dragging
             // Health Bar
-            float hX = espBaseX - 25 * currentScale + espModule.healthBarXOffset.getValue();
+            float hX = espBaseX - 22 * scale + espModule.healthBarXOffset.getValue();
             float hY = espBaseY + espModule.healthBarYOffset.getValue();
-            if (MouseUtils.isHovered(mouseX, mouseY, hX, hY, hX + 5 * currentScale, hY + 30 * currentScale)) {
-                draggingElement = 0; dragOffsetX = (int) (mouseX - hX); dragOffsetY = (int) (mouseY - hY); return;
+            if (MouseUtils.isHovered(mouseX, mouseY, hX, hY, hX + 5 * scale, hY + 65 * scale)) {
+                draggingElement = 0; dragOffsetX = mouseX - hX; dragOffsetY = mouseY - hY; return;
             }
 
             // Armor Bar
-            float abW = 30f * currentScale;
-            float abH = 2.5f * currentScale;
-            float aX = espBaseX - (abW / 2) + espModule.armorBarXOffset.getValue();
-            float aY = espBaseY + 50 * currentScale + espModule.armorBarYOffset.getValue();
-            if (MouseUtils.isHovered(mouseX, mouseY, aX, aY, aX + abW, aY + abH)) {
-                draggingElement = 1; dragOffsetX = (int) (mouseX - aX); dragOffsetY = (int) (mouseY - aY); return;
+            float abX = espBaseX - 17.5f * scale + espModule.armorBarXOffset.getValue();
+            float abY = espBaseY + 68 * scale + espModule.armorBarYOffset.getValue();
+            if (MouseUtils.isHovered(mouseX, mouseY, abX, abY, abX + 35 * scale, abY + 5 * scale)) {
+                draggingElement = 1; dragOffsetX = mouseX - abX; dragOffsetY = mouseY - abY; return;
             }
 
             // Nametag
-            FontRenderer font = Fonts.INTER_MEDIUM.get((int)(10 * currentScale));
-            String name = mc.thePlayer != null ? mc.thePlayer.getName() : "You";
-            String health = String.format("%.1f" + EnumChatFormatting.RED + " \u2764", dummyPlayer.getHealth());
-            double combinedW = (font.getStringWidth(health) + 3) + (2 * currentScale) + (font.getStringWidth(name) + 3);
-            float nX = (float) (espBaseX - (combinedW / 2.0)) + espModule.nametagXOffset.getValue();
-            float nY = espBaseY - 10 * currentScale + espModule.nametagYOffset.getValue();
-            if (MouseUtils.isHovered(mouseX, mouseY, nX, nY, nX + (float)combinedW, nY + 10 * currentScale)) {
-                draggingElement = 2; dragOffsetX = (int) (mouseX - nX); dragOffsetY = (int) (mouseY - nY); return;
-            }
-
-            // Held Item
-            float hIX = espBaseX + 20 * currentScale + espModule.heldItemXOffset.getValue();
-            float hIY = espBaseY + 20 * currentScale + espModule.heldItemYOffset.getValue();
-            if (MouseUtils.isHovered(mouseX, mouseY, hIX, hIY, hIX + 16 * currentScale, hIY + 16 * currentScale)) {
-                draggingElement = 4; dragOffsetX = (int) (mouseX - hIX); dragOffsetY = (int) (mouseY - hIY); return;
-            }
-
-            // Armor Items
-            float aIX = espBaseX + 25 * currentScale + espModule.armorItemsXOffset.getValue();
-            float aIY = espBaseY + espModule.armorItemsYOffset.getValue();
-            if (MouseUtils.isHovered(mouseX, mouseY, aIX, aIY, aIX + 16 * currentScale, aIY + 72 * currentScale)) {
-                draggingElement = 5; dragOffsetX = (int) (mouseX - aIX); dragOffsetY = (int) (mouseY - aIY); return;
+            float nW = Fonts.INTER_MEDIUM.get((int)(10 * scale)).getStringWidth(mc.thePlayer.getName()) + 4;
+            float nX = espBaseX - nW / 2f + espModule.nametagXOffset.getValue();
+            float nY = espBaseY - 12 * scale + espModule.nametagYOffset.getValue();
+            if (MouseUtils.isHovered(mouseX, mouseY, nX, nY, nX + nW, nY + 10 * scale)) {
+                draggingElement = 2; dragOffsetX = mouseX - nX; dragOffsetY = mouseY - nY; return;
             }
         }
-        super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
-    @Override
     public void mouseReleased(int mouseX, int mouseY, int state) {
-        super.mouseReleased(mouseX, mouseY, state);
         draggingElement = -1;
     }
 
