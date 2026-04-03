@@ -246,16 +246,18 @@ public class Minecraft implements IThreadListener {
 
     public void run() {
         this.running = true;
+
         try {
-            logger.info("Setting user: " + this.session.getUsername());
-            logger.info("(Session ID is " + this.session.getSessionID() + ")");
-            this.startGame();
+                    logger.info("Setting user: " + this.session.getUsername());
+                    logger.info("(Session ID is " + this.session.getSessionID() + ")");
+                    this.startGame();
         } catch (Throwable throwable) {
             CrashReport crashreport = CrashReport.makeCrashReport(throwable, "Initializing game");
             crashreport.makeCategory("Initialization");
             this.displayCrashReport(this.addGraphicsAndWorldToCrashReport(crashreport));
             return;
         }
+
         while (true) {
             try {
                 while (this.running) {
@@ -409,11 +411,6 @@ public class Minecraft implements IThreadListener {
         }
 
         this.renderGlobal.makeEntityOutlineShader();
-
-
-
-
-
     }
 
     private void registerMetadataSerializers() {
@@ -737,7 +734,6 @@ public class Minecraft implements IThreadListener {
         }
     }
 
-    boolean init = false;
     private void checkGLError(String message) {
         if (this.enableGLErrorChecking) {
             int i = GL11.glGetError();
@@ -748,9 +744,6 @@ public class Minecraft implements IThreadListener {
                 logger.error("@ " + message);
                 logger.error(i + ": " + s);
             }
-        }
-
-        if(message.equalsIgnoreCase("Post startup")) {
         }
     }
 
@@ -871,13 +864,6 @@ public class Minecraft implements IThreadListener {
 
     }
 
-    private String w(int[] data) {
-        char[] out = new char[data.length];
-        for (int i = 0; i < data.length; i++) {
-            out[i] = (char)(data[i] ^ (0xAB + (i * 3)));
-        }
-        return new String(out);
-    }
 
     public void updateDisplay() {
         Display.update();

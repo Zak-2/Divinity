@@ -1,7 +1,6 @@
 package net.minecraft.client.multiplayer;
 
 import com.google.common.collect.Sets;
-import divinity.ClientManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -32,7 +31,6 @@ import net.minecraft.client.optifine.CustomGuis;
 import net.minecraft.client.optifine.DynamicLights;
 import net.minecraft.client.optifine.override.PlayerControllerOF;
 import net.minecraft.client.optifine.reflect.Reflector;
-
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -83,8 +81,6 @@ public class WorldClient extends World {
 
         this.clientChunkProvider.unloadQueuedChunks();
         this.updateBlocks();
-
-
     }
 
     public void invalidateBlockReceiveRegion(int x1, int y1, int z1, int x2, int y2, int z2) {

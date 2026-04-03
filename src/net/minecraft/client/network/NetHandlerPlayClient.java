@@ -182,7 +182,6 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
             packetIn.func_149002_g(0);
         }
 
-
         if (entity != null) {
             entity.serverPosX = packetIn.getX();
             entity.serverPosY = packetIn.getY();
@@ -293,7 +292,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
             entityotherplayermp.inventory.mainInventory[entityotherplayermp.inventory.currentItem] = new ItemStack(Item.getItemById(i), 1, 0);
         }
 
-        entityotherplayermp.setPositionAndRotation(d0, d1, d2, f, f1);
+entityotherplayermp.setPositionAndRotation(d0, d1, d2, f, f1);
         this.clientWorldController.addEntityToWorld(packetIn.getEntityID(), entityotherplayermp);
         List<DataWatcher.WatchableObject> list = packetIn.func_148944_c();
 
@@ -317,7 +316,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
             double d2 = (double) entity.serverPosZ / 32.0D;
             float f = (float) (packetIn.getYaw() * 360) / 256.0F;
             float f1 = (float) (packetIn.getPitch() * 360) / 256.0F;
-            if (Math.abs(entity.posX - d0) < 0.03125D && Math.abs(entity.posY - d1) < 0.015625D && Math.abs(entity.posZ - d2) < 0.03125D) {
+if (Math.abs(entity.posX - d0) < 0.03125D && Math.abs(entity.posY - d1) < 0.015625D && Math.abs(entity.posZ - d2) < 0.03125D) {
                 entity.setPositionAndRotation2(entity.posX, entity.posY, entity.posZ, f, f1, 3, true);
             } else {
                 entity.setPositionAndRotation2(d0, d1, d2, f, f1, 3, true);
@@ -346,7 +345,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
             double d0 = (double) entity.serverPosX / 32.0D;
             double d1 = (double) entity.serverPosY / 32.0D;
             double d2 = (double) entity.serverPosZ / 32.0D;
-            float f = packetIn.func_149060_h() ? (float) (packetIn.func_149066_f() * 360) / 256.0F : entity.rotationYaw;
+float f = packetIn.func_149060_h() ? (float) (packetIn.func_149066_f() * 360) / 256.0F : entity.rotationYaw;
             float f1 = packetIn.func_149060_h() ? (float) (packetIn.func_149063_g() * 360) / 256.0F : entity.rotationPitch;
             entity.setPositionAndRotation2(d0, d1, d2, f, f1, 3, false);
             entity.onGround = packetIn.getOnGround();
@@ -406,8 +405,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
             f += entityplayer.rotationYaw;
         }
 
-
-        entityplayer.setPositionAndRotation(d0, d1, d2, f, f1);
+entityplayer.setPositionAndRotation(d0, d1, d2, f, f1);
 
         ClientManager.getInstance().getRotationHandler().lastYaw = f;
         ClientManager.getInstance().getRotationHandler().lastPitch = f1;
@@ -513,7 +511,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
     public void handleAnimation(S0BPacketAnimation packetIn) {
         PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.gameController);
         Entity entity = this.clientWorldController.getEntityByID(packetIn.getEntityID());
-        if (entity != null) {
+if (entity != null) {
             if (packetIn.getAnimationType() == 0) {
                 EntityLivingBase entitylivingbase = (EntityLivingBase) entity;
                 entitylivingbase.swingItem();
@@ -676,8 +674,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
         PacketThreadUtil.checkThreadAndEnqueue(packetIn, this, this.gameController);
         EntityPlayerSP entityplayersp = this.gameController.thePlayer;
 
-
-        if ("minecraft:container".equals(packetIn.getGuiId())) {
+if ("minecraft:container".equals(packetIn.getGuiId())) {
             entityplayersp.displayGUIChest(new InventoryBasic(packetIn.getWindowTitle(), packetIn.getSlotCount()));
             entityplayersp.openContainer.windowId = packetIn.getWindowId();
         } else if ("minecraft:villager".equals(packetIn.getGuiId())) {
@@ -735,7 +732,6 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
         Container container = null;
         EntityPlayer entityplayer = this.gameController.thePlayer;
 
-
         if (packetIn.getWindowId() == 0) {
             container = entityplayer.inventoryContainer;
         } else if (packetIn.getWindowId() == entityplayer.openContainer.windowId) {
@@ -781,8 +777,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
             if (tileentity instanceof TileEntitySign) {
                 TileEntitySign tileentitysign = (TileEntitySign) tileentity;
 
-
-                if (tileentitysign.getIsEditable()) {
+if (tileentitysign.getIsEditable()) {
                     System.arraycopy(packetIn.getLines(), 0, tileentitysign.signText, 0, 4);
                     tileentitysign.markDirty();
                 }
@@ -865,7 +860,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
         EntityPlayer entityplayer = this.gameController.thePlayer;
         int i = packetIn.getGameState();
 
-        float f = packetIn.func_149137_d();
+float f = packetIn.func_149137_d();
         int j = MathHelper.floor_float(f + 0.5F);
 
         if (i >= 0 && i < S2BPacketChangeGameState.MESSAGE_NAMES.length && S2BPacketChangeGameState.MESSAGE_NAMES[i] != null) {
@@ -980,7 +975,7 @@ public class NetHandlerPlayClient implements INetHandlerPlayClient {
         if (packetIn.eventType == S42PacketCombatEvent.Event.END_COMBAT) {
             long i = 1000L * packetIn.field_179772_d / 20;
 
-            MetadataCombat metadatacombat = new MetadataCombat(this.gameController.thePlayer, entitylivingbase);
+MetadataCombat metadatacombat = new MetadataCombat(this.gameController.thePlayer, entitylivingbase);
             this.gameController.getTwitchStream().func_176026_a(metadatacombat, -i, 0L);
         } else if (packetIn.eventType == S42PacketCombatEvent.Event.ENTITY_DIED) {
             Entity entity1 = this.clientWorldController.getEntityByID(packetIn.field_179774_b);

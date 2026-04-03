@@ -122,7 +122,6 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback {
         for (int j = 0; j < this.labelList.size(); ++j) {
             this.labelList.get(j).drawLabel(this.mc, mouseX, mouseY);
         }
-
     }
 
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
@@ -412,7 +411,6 @@ public abstract class GuiScreen extends Gui implements GuiYesNoCallback {
     }
 
     public void initGui() {
-
     }
 
     public void handleInput() throws IOException {

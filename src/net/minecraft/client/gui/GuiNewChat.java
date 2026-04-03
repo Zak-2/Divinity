@@ -129,10 +129,8 @@ public class GuiNewChat extends Gui {
 
     public void printChatMessageWithOptionalDeletion(IChatComponent chatComponent, int chatLineId) {
         String originalMessage = chatComponent.getUnformattedText();
-
         ClientManager.getInstance().getEventDispatcher().post(new ChatEvent(originalMessage));
         this.setChatLine(chatComponent, chatLineId, this.mc.ingameGUI.getUpdateCounter(), false);
-
         logger.info("[CHAT] " + originalMessage);
     }
 

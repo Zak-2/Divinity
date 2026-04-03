@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.GlStateManager;
 import java.awt.*;
 import java.io.IOException;
 
-
 public class GuiClientMainMenu extends GuiScreen {
 
     private static final long ANIMATION_DURATION_MS = 800L;
@@ -98,11 +97,7 @@ public class GuiClientMainMenu extends GuiScreen {
     }
 
     private void drawCornerText(float alpha) {
-        float xOffset = 30.0f * (1.0f - alpha);
-
-        String timeText = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
-        int timeWidth = Fonts.INTER_MEDIUM.get(18).getStringWidth(timeText);
-        Fonts.INTER_MEDIUM.get(18).drawStringWithShadow(timeText, width - timeWidth - 4 + xOffset, 8, applyAlpha(-1, alpha));
+        // Subscription and online user display removed
     }
 
     @Override

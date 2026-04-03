@@ -176,8 +176,6 @@ public class GuiIngame extends Gui {
             GlStateManager.enableAlpha();
             GlStateManager.enableDepth();
         }
-
-
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         int k1 = i / 2 - 91;
 
@@ -226,7 +224,6 @@ public class GuiIngame extends Gui {
             }
 
         }
-
         if (this.titlesTimer > 0) {
             float f3 = (float) this.titlesTimer - partialTicks;
             int i2 = 255;
@@ -259,7 +256,6 @@ public class GuiIngame extends Gui {
                 GlStateManager.disableBlend();
                 GlStateManager.popMatrix();
             }
-
         }
 
         Scoreboard scoreboard = this.mc.theWorld.getScoreboard();

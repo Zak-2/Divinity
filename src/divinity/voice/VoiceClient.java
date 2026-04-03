@@ -183,7 +183,7 @@ public class VoiceClient {
     }
 
     public void requestToken() {
-        // IRC removed - token must be provided externally
+        // IRC token request removed
     }
 
     public void onIrcDisconnected() {
@@ -198,7 +198,6 @@ public class VoiceClient {
         if (!running.get()) return;
 
         long now = System.currentTimeMillis();
-
         String serverKey = computeServerKey();
         if (!serverKey.equals(lastServerKey)) {
             lastServerKey = serverKey;
